@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import AddCertificate from "./pages/AddCertificate";
 import EditCertificate from "./pages/EditCertificate";
 import PDFPreview from "./pages/PDFPreview";
+import BatchPDFPreview from "./pages/BatchPDFPreview";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/add-certificate" element={<ProtectedRoute><AddCertificate /></ProtectedRoute>} />
           <Route path="/edit-certificate/:id" element={<ProtectedRoute><EditCertificate /></ProtectedRoute>} />
           <Route path="/pdf-preview/:id" element={<ProtectedRoute><PDFPreview /></ProtectedRoute>} />
+          <Route path="/batch-pdf-preview/:ids" element={<ProtectedRoute><BatchPDFPreview /></ProtectedRoute>} />
           
           {/* Catch-all route */}
           <Route path="*" element={<NotFound />} />

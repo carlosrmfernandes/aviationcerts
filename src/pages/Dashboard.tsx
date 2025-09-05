@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Table, 
   TableBody, 
@@ -27,7 +28,8 @@ import {
   Trash2, 
   FileText,
   LogOut,
-  User
+  User,
+  Files
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,6 +51,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCertificates, setSelectedCertificates] = useState<string[]>([]);
   
   // Mock data - em produção viria de uma API
   const [certificates, setCertificates] = useState<Certificate[]>([
@@ -99,6 +102,36 @@ const Dashboard = () => {
 
   const handleGeneratePDF = (certificate: Certificate) => {
     navigate(`/pdf-preview/${certificate.id}`);
+  };
+
+  const handleGenerateMultiplePDFs = () => {
+    if (selectedCertificates.length === 0) {
+      toast({
+        title: "Nenhum certificado selecionado",
+        description: "Selecione ao menos um certificado para gerar os PDFs",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const selectedIds = selectedCertificates.join(",");
+    navigate(`/batch-pdf-preview/${selectedIds}`);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedCertificates.length === filteredCertificates.length) {
+      setSelectedCertificates([]);
+    } else {
+      setSelectedCertificates(filteredCertificates.map(cert => cert.id));
+    }
+  };
+
+  const handleSelectCertificate = (id: string) => {
+    setSelectedCertificates(prev => 
+      prev.includes(id) 
+        ? prev.filter(certId => certId !== id)
+        : [...prev, id]
+    );
   };
 
   const filteredCertificates = certificates.filter(cert =>
@@ -180,10 +213,18 @@ const Dashboard = () => {
               className="pl-9"
             />
           </div>
-          <Button onClick={() => navigate("/add-certificate")}>
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Certificado
-          </Button>
+          <div className="flex gap-2">
+            {selectedCertificates.length > 0 && (
+              <Button variant="outline" onClick={handleGenerateMultiplePDFs}>
+                <Files className="w-4 h-4 mr-2" />
+                Gerar {selectedCertificates.length} PDFs
+              </Button>
+            )}
+            <Button onClick={() => navigate("/add-certificate")}>
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Certificado
+            </Button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
@@ -236,6 +277,12 @@ const Dashboard = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={selectedCertificates.length === filteredCertificates.length && filteredCertificates.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Part Number</TableHead>
                     <TableHead>Serial Number</TableHead>
@@ -247,6 +294,12 @@ const Dashboard = () => {
                 <TableBody>
                   {filteredCertificates.map((certificate) => (
                     <TableRow key={certificate.id}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedCertificates.includes(certificate.id)}
+                          onCheckedChange={() => handleSelectCertificate(certificate.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         {certificate.name}
                       </TableCell>
