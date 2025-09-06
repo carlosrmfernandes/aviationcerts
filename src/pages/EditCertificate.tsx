@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Save, Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/config/api";
 
 interface CertificateForm {
   description: string;
@@ -27,26 +28,63 @@ const EditCertificate = () => {
   const { id } = useParams();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  
-  // Mock data - em produção viria de uma API baseada no ID
   const [formData, setFormData] = useState<CertificateForm>({
-    description: "DBL TRK.SWL TYPE I FWD AFT SEAT",
-    partNumber: "2524-015 (-14B)",
-    serialNumber: "930527-7",
-    name: "N225JD-0497",
-    formNumber: "SUA-4246",
-    workOrderNumber: "4246",
+    description: "",
+    partNumber: "",
+    serialNumber: "",
+    name: "",
+    formNumber: "",
+    workOrderNumber: "",
     quantity: "1",
-    status: "INSPECTED",
-    remarks: "REMOVED ARTICLE FROM AIRCRAFT N225JD GULFSTREAM G200. AIRCRAFT SERIAL NUMBER: 028, AIRCRAFT TTSN: 7,177.2, AIRCRAFT TCSN: 4,292. REMOVAL AND INSPECTION PERFORMED ACCORDING TO GULFSTREAM G200 AMM REV. 34, DATED JUN 15, 2021. VERIFIED NO OUTSTANDING AIRWORTHINESS DIRECTIVES APPLY TO ARTICLE. REFERENCE WORK ORDER #4246.",
-    approval: "CRS#WAVR866D"
+    status: "PENDING",
+    remarks: "",
+    approval: ""
   });
 
   useEffect(() => {
-    // Simular carregamento dos dados do certificado
-    // Em produção, faria uma chamada à API com o ID
-    console.log(`Loading certificate with ID: ${id}`);
-  }, [id]);
+    const fetchCertificate = async () => {
+      if (!id) return;
+      
+      const token = localStorage.getItem("access_token");
+      try {
+        const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (!res.ok) throw new Error("Error fetching certificate");
+
+        const data = await res.json();
+        
+        // Map API data to form
+        setFormData({
+          description: data.description || "",
+          partNumber: data.partNumber || "",
+          serialNumber: data.serialNumber || "",
+          name: data.name || "",
+          formNumber: data.formNumber || "",
+          workOrderNumber: data.workOrderNumber || "",
+          quantity: data.quantity?.toString() || "1",
+          status: data.status || "PENDING",
+          remarks: data.remarks || "",
+          approval: data.approval || ""
+        });
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Failed to load certificate",
+          variant: "destructive",
+        });
+        navigate("/dashboard");
+      }
+    };
+
+    fetchCertificate();
+  }, [id, toast, navigate]);
 
   const handleInputChange = (field: keyof CertificateForm, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -56,15 +94,46 @@ const EditCertificate = () => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    const token = localStorage.getItem("access_token");
+    try {
+      const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          description: formData.description,
+          partNumber: formData.partNumber,
+          serialNumber: formData.serialNumber,
+          name: formData.name,
+          formNumber: formData.formNumber,
+          workOrderNumber: formData.workOrderNumber,
+          quantity: formData.quantity,
+          status: formData.status,
+          remarks: formData.remarks,
+          approval: formData.approval
+        })
+      });
+
+      if (!res.ok) throw new Error("Error updating certificate");
+
       toast({
-        title: "Certificado atualizado!",
-        description: "As alterações foram salvas com sucesso",
+        title: "Certificate updated!",
+        description: "Changes were saved successfully",
       });
       navigate("/dashboard");
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update certificate",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -79,12 +148,12 @@ const EditCertificate = () => {
               className="mr-4"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
+              Back
             </Button>
             <div className="flex items-center">
               <Plane className="w-8 h-8 text-primary mr-3" />
               <div>
-                <h1 className="text-xl font-bold text-foreground">Editar Certificado</h1>
+                <h1 className="text-xl font-bold text-foreground">Edit Certificate</h1>
                 <p className="text-sm text-muted-foreground">
                   FAA Form 8130-3 - {formData.name}
                 </p>
@@ -98,9 +167,9 @@ const EditCertificate = () => {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Editar Informações do Certificado</CardTitle>
+            <CardTitle>Edit Certificate Information</CardTitle>
             <CardDescription>
-              Modifique os campos necessários do certificado FAA Form 8130-3
+              Modify the necessary fields of the FAA Form 8130-3 certificate
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -108,7 +177,7 @@ const EditCertificate = () => {
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nome do Formulário *</Label>
+                  <Label htmlFor="name">Form Name *</Label>
                   <Input
                     id="name"
                     placeholder="Ex: N225JD-0497"
@@ -169,7 +238,7 @@ const EditCertificate = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantidade *</Label>
+                  <Label htmlFor="quantity">Quantity *</Label>
                   <Input
                     id="quantity"
                     type="number"
@@ -184,7 +253,7 @@ const EditCertificate = () => {
                   <Label htmlFor="status">Status *</Label>
                   <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione o status" />
+                      <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="PENDING">PENDING</SelectItem>
@@ -197,7 +266,7 @@ const EditCertificate = () => {
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">Descrição *</Label>
+                <Label htmlFor="description">Description *</Label>
                 <Input
                   id="description"
                   placeholder="Ex: DBL TRK.SWL TYPE I FWD AFT SEAT"
@@ -209,10 +278,10 @@ const EditCertificate = () => {
 
               {/* Remarks */}
               <div className="space-y-2">
-                <Label htmlFor="remarks">Observações *</Label>
+                <Label htmlFor="remarks">Remarks *</Label>
                 <Textarea
                   id="remarks"
-                  placeholder="Descreva os detalhes da inspeção, remoção ou outros procedimentos realizados..."
+                  placeholder="Describe inspection details, removal procedures, or other work performed..."
                   value={formData.remarks}
                   onChange={(e) => handleInputChange("remarks", e.target.value)}
                   rows={4}
@@ -222,7 +291,7 @@ const EditCertificate = () => {
 
               {/* Approval */}
               <div className="space-y-2">
-                <Label htmlFor="approval">Código de Aprovação *</Label>
+                <Label htmlFor="approval">Approval Code *</Label>
                 <Input
                   id="approval"
                   placeholder="Ex: CRS#WAVR866D"
@@ -241,7 +310,7 @@ const EditCertificate = () => {
                   className="sm:w-auto"
                   disabled={loading}
                 >
-                  Cancelar
+                  Cancel
                 </Button>
                 <Button
                   type="submit"
@@ -249,7 +318,7 @@ const EditCertificate = () => {
                   disabled={loading}
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {loading ? "Salvando..." : "Salvar Alterações"}
+                  {loading ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </form>

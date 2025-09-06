@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Download, Printer, Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/config/api";
 
 interface Certificate {
   id: string;
@@ -12,68 +14,82 @@ interface Certificate {
   name: string;
   formNumber: string;
   workOrderNumber: string;
-  quantity: number;
-  status: "INSPECTED" | "PENDING" | "REJECTED";
+  quantity: string;
+  status: string;
   remarks: string;
   approval: string;
-  approvalDate: string;
-  authorizedSignature: string;
-  organization: string;
-  country: string;
+  user_id: number;
+  created_at: string;
+  updated_at: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    company: string;
+    created_at: string;
+    updated_at: string;
+  };
 }
 
 const BatchPDFPreview = () => {
   const navigate = useNavigate();
   const { ids } = useParams();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
 
-  // Mock data - em produção viria de uma API baseada nos IDs
-  const mockCertificates: Certificate[] = [
-    {
-      id: "1",
-      description: "DBL TRK.SWL TYPE I FWD AFT SEAT",
-      partNumber: "2524-015 (-14B)",
-      serialNumber: "930527-7",
-      name: "N225JD-0497",
-      formNumber: "SUA-4246",
-      workOrderNumber: "4246",
-      quantity: 1,
-      status: "INSPECTED",
-      remarks: "ITEM REMOVED IN SERVICEABLE CONDITION FROM AIRCRAFT N26DJ. SN: 1206. TTSN: 11,697.3 TCSN: 5356. PERFORMED DETAILED VISUAL INSPECTION OF THE ITEM IN REFERENCE TO GULFSTREAM G-IV AMM REV .74 DATED APR 15 2023. REF WORK ORDER 2865",
-      approval: "CRS#WAVR866D",
-      approvalDate: "3/18/2024",
-      authorizedSignature: "Joaquim Fernandes Quintas",
-      organization: "Fly Alliance, LLC. 2030 SE Airport Rd. Stuart FL, 34996",
-      country: "FAA/United States"
-    },
-    {
-      id: "2",
-      description: "HYDRAULIC PUMP ASSEMBLY",
-      partNumber: "1234-567 (-89A)",
-      serialNumber: "ABC123-4",
-      name: "N225JD-0498",
-      formNumber: "SUA-4246",
-      workOrderNumber: "4246",
-      quantity: 1,
-      status: "INSPECTED",
-      remarks: "REMOVED ARTICLE FROM AIRCRAFT N225JD GULFSTREAM G200. AIRCRAFT SERIAL NUMBER: 028, AIRCRAFT TTSN: 7,177.2, AIRCRAFT TCSN: 4,292.",
-      approval: "CRS#WAVR866D",
-      approvalDate: "3/18/2024",
-      authorizedSignature: "Joaquim Fernandes Quintas",
-      organization: "Fly Alliance, LLC. 2030 SE Airport Rd. Stuart FL, 34996",
-      country: "FAA/United States"
-    }
-  ];
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      if (!ids) return;
+      
+      const selectedIds = ids.split(',');
+      const token = localStorage.getItem("access_token");
+      const certificatePromises = selectedIds.map(id => 
+        fetch(getApiUrl(`/api/certificates/${id}`), {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        }).then(res => {
+          if (!res.ok) throw new Error(`Error fetching certificate ${id}`);
+          return res.json();
+        })
+      );
 
-  const selectedIds = ids?.split(',') || [];
-  const selectedCertificates = mockCertificates.filter(cert => selectedIds.includes(cert.id));
+      try {
+        const results = await Promise.all(certificatePromises);
+        setCertificates(results);
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error",
+          description: "Could not load some certificates",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCertificates();
+  }, [ids, toast]);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
 
   const handleDownloadAllPDFs = () => {
     toast({
-      title: `${selectedCertificates.length} PDFs Gerados!`,
-      description: "Todos os certificados foram gerados com sucesso",
+      title: `${certificates.length} PDFs Generated!`,
+      description: "All certificates were generated successfully",
     });
-    // Aqui seria implementada a lógica real de geração dos PDFs
+    // Here would be implemented the actual PDF generation logic
   };
 
   const handlePrintAll = () => {
@@ -89,7 +105,7 @@ const BatchPDFPreview = () => {
             {/* Column 1 */}
             <div className="border-r border-gray-800 p-2">
               <div className="text-xs font-bold mb-1">1. Approving Civil Aviation Authority Country:</div>
-              <div className="text-sm">{certificate.country}</div>
+              <div className="text-sm">FAA/United States</div>
             </div>
             
             {/* Column 2 - Title */}
@@ -109,7 +125,7 @@ const BatchPDFPreview = () => {
           <div className="grid grid-cols-2 border-b border-gray-800">
             <div className="border-r border-gray-800 p-2">
               <div className="text-xs font-bold mb-1">4. Organization Name and Address:</div>
-              <div className="text-sm">{certificate.organization}</div>
+              <div className="text-sm">{certificate.user.company}</div>
             </div>
             <div className="p-2">
               <div className="text-xs font-bold mb-1">5. Work Order/Contract/Invoice Number:</div>
@@ -148,8 +164,8 @@ const BatchPDFPreview = () => {
           <div className="grid grid-cols-2 border-b border-gray-800">
             <div className="border-r border-gray-800 p-2">
               <div className="flex items-center mb-2">
-                <input type="checkbox" className="mr-2" />
-                <span className="text-xs">Approved per FAA approva for safe operations</span>
+                <input type="checkbox" className="mr-2"/>
+                <span className="text-xs">Approved per FAA approval for safe operations</span>
               </div>
               <div className="flex items-center">
                 <input type="checkbox" className="mr-2" />
@@ -174,15 +190,15 @@ const BatchPDFPreview = () => {
               <div className="text-xs font-bold mb-1">13b. Approval/Authorization No.:</div>
               <div className="h-8"></div>
               <div className="text-xs font-bold mb-1">14a. Authorized Signature:</div>
-              <div className="font-cursive text-lg">{certificate.authorizedSignature}</div>
+              <div className="font-cursive text-lg">{certificate.user.name}</div>
               <div className="text-xs font-bold mb-1">14b. Name (Typed or Printed):</div>
-              <div className="text-sm">{certificate.authorizedSignature}</div>
+              <div className="text-sm">{certificate.user.name}</div>
             </div>
             <div className="p-2">
               <div className="text-xs font-bold mb-1">14c. Approval Certificate No:</div>
               <div className="text-sm mb-4">{certificate.approval}</div>
               <div className="text-xs font-bold mb-1">14e. Date (dd mmm yyyy):</div>
-              <div className="text-sm">{certificate.approvalDate}</div>
+              <div className="text-sm">{formatDate(certificate.updated_at)}</div>
             </div>
           </div>
 
@@ -203,6 +219,17 @@ const BatchPDFPreview = () => {
     </Card>
   );
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading certificates...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
@@ -216,14 +243,14 @@ const BatchPDFPreview = () => {
                 className="mr-4"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar
+                Back
               </Button>
               <div className="flex items-center">
                 <Plane className="w-8 h-8 text-primary mr-3" />
                 <div>
-                  <h1 className="text-xl font-bold text-foreground">Preview de Múltiplos Certificados</h1>
+                  <h1 className="text-xl font-bold text-foreground">Multiple Certificates Preview</h1>
                   <p className="text-sm text-muted-foreground">
-                    {selectedCertificates.length} certificado(s) selecionado(s)
+                    {certificates.length} certificate(s) selected
                   </p>
                 </div>
               </div>
@@ -232,11 +259,11 @@ const BatchPDFPreview = () => {
             <div className="flex items-center space-x-2">
               <Button variant="outline" onClick={handlePrintAll}>
                 <Printer className="w-4 h-4 mr-2" />
-                Imprimir Todos
+                Print All
               </Button>
               <Button onClick={handleDownloadAllPDFs}>
                 <Download className="w-4 h-4 mr-2" />
-                Download {selectedCertificates.length} PDFs
+                Download {certificates.length} PDFs
               </Button>
             </div>
           </div>
@@ -245,13 +272,16 @@ const BatchPDFPreview = () => {
 
       {/* PDF Previews */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-0 print:max-w-full">
-        {selectedCertificates.map((certificate) => (
+        {certificates.map((certificate) => (
           <CertificatePreview key={certificate.id} certificate={certificate} />
         ))}
         
-        {selectedCertificates.length === 0 && (
+        {certificates.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-muted-foreground text-lg">Nenhum certificado encontrado</p>
+            <p className="text-muted-foreground text-lg">No certificates found</p>
+            <Button onClick={() => navigate("/dashboard")} className="mt-4">
+              Back to Dashboard
+            </Button>
           </div>
         )}
       </main>

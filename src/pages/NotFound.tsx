@@ -20,21 +20,21 @@ const NotFound = () => {
           <Plane className="w-10 h-10 text-primary-foreground" />
         </div>
         <h1 className="text-6xl font-bold text-foreground mb-4">404</h1>
-        <h2 className="text-2xl font-semibold text-foreground mb-4">Página não encontrada</h2>
+        <h2 className="text-2xl font-semibold text-foreground mb-4">Page not found</h2>
         <p className="text-muted-foreground mb-8">
-          A página que você está procurando não existe ou foi movida.
+          The page you are looking for does not exist or has been moved.
         </p>
         <div className="space-y-4">
           <Button asChild className="w-full">
             <Link to="/login">
               <Home className="w-4 h-4 mr-2" />
-              Voltar ao Login
+              Back to Login
             </Link>
           </Button>
           <Button variant="outline" asChild className="w-full">
             <Link to="/dashboard">
               <Plane className="w-4 h-4 mr-2" />
-              Ir para Dashboard
+              Go to Dashboard
             </Link>
           </Button>
         </div>

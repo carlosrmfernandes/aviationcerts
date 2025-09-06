@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plane, Lock, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/config/api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -18,16 +19,43 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate login
-    setTimeout(() => {
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo ao sistema de certificados FAA",
+    try {
+      const response = await fetch(getApiUrl('/api/login'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        })
       });
-      localStorage.setItem("isAuthenticated", "true");
-      navigate("/dashboard");
+
+      const data = await response.json();
+
+      if (response.ok) {
+        
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+        
+        toast({
+          title: "Login successful!",
+          description: `Welcome, ${data.user.name}!`,
+        });
+        navigate("/dashboard");
+      } else {
+        throw new Error(data.message || "Error logging in");
+      }
+    } catch (error) {
+      toast({
+        title: "Login error",
+        description: error instanceof Error ? error.message : "Invalid credentials",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -38,14 +66,14 @@ const Login = () => {
             <Plane className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">Aviation Certs</h1>
-          <p className="text-muted-foreground">Sistema de Gerenciamento de Certificados FAA</p>
+          <p className="text-muted-foreground">FAA Certificate Management System</p>
         </div>
 
         <Card className="shadow-lg border-0" style={{ boxShadow: 'var(--shadow-strong)' }}>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Entrar</CardTitle>
+            <CardTitle className="text-2xl text-center">Sign In</CardTitle>
             <CardDescription className="text-center">
-              Entre com suas credenciais para acessar o sistema
+              Enter your credentials to access the system
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -57,7 +85,7 @@ const Login = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="seu@email.com"
+                    placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-9"
@@ -66,7 +94,7 @@ const Login = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -85,15 +113,15 @@ const Login = () => {
                 className="w-full" 
                 disabled={loading}
               >
-                {loading ? "Entrando..." : "Entrar"}
+                {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
             
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                Não tem uma conta?{" "}
+                Don't have an account?{" "}
                 <Link to="/register" className="text-primary hover:underline font-medium">
-                  Registre-se
+                  Register
                 </Link>
               </p>
             </div>

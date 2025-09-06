@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plane, Lock, Mail, User, Building } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getApiUrl } from "@/config/api";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -24,8 +25,17 @@ const Register = () => {
     
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Erro",
-        description: "As senhas não coincidem",
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
         variant: "destructive"
       });
       return;
@@ -33,15 +43,37 @@ const Register = () => {
 
     setLoading(true);
     
-    // Simulate registration
-    setTimeout(() => {
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Você já pode fazer login no sistema",
+    try {
+      const response = await fetch(getApiUrl('/api/register'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Error creating account');
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: "Account created successfully!",
+        description: "You can now login to the system",
+      });
+      
       navigate("/login");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error creating account",
+        variant: "destructive"
+      });
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -56,26 +88,26 @@ const Register = () => {
             <Plane className="w-8 h-8 text-primary-foreground" />
           </div>
           <h1 className="text-3xl font-bold text-foreground">Aviation Certs</h1>
-          <p className="text-muted-foreground">Sistema de Gerenciamento de Certificados FAA</p>
+          <p className="text-muted-foreground">FAA Certificate Management System</p>
         </div>
 
         <Card className="shadow-lg border-0" style={{ boxShadow: 'var(--shadow-strong)' }}>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Criar Conta</CardTitle>
+            <CardTitle className="text-2xl text-center">Create Account</CardTitle>
             <CardDescription className="text-center">
-              Preencha os dados para criar sua conta
+              Fill in your details to create your account
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
+                <Label htmlFor="name">Full Name</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Seu nome completo"
+                    placeholder="Your full name"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     className="pl-9"
@@ -91,7 +123,7 @@ const Register = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="seu@email.com"
+                    placeholder="your@email.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     className="pl-9"
@@ -101,13 +133,13 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="company">Empresa</Label>
+                <Label htmlFor="company">Company</Label>
                 <div className="relative">
                   <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="company"
                     type="text"
-                    placeholder="Nome da empresa"
+                    placeholder="Company name"
                     value={formData.company}
                     onChange={(e) => handleInputChange("company", e.target.value)}
                     className="pl-9"
@@ -117,7 +149,7 @@ const Register = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <Label htmlFor="password">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -128,12 +160,13 @@ const Register = () => {
                     onChange={(e) => handleInputChange("password", e.target.value)}
                     className="pl-9"
                     required
+                    minLength={6}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -144,6 +177,7 @@ const Register = () => {
                     onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
                     className="pl-9"
                     required
+                    minLength={6}
                   />
                 </div>
               </div>
@@ -153,15 +187,15 @@ const Register = () => {
                 className="w-full" 
                 disabled={loading}
               >
-                {loading ? "Criando conta..." : "Criar Conta"}
+                {loading ? "Creating account..." : "Create Account"}
               </Button>
             </form>
             
             <div className="mt-6 text-center">
               <p className="text-sm text-muted-foreground">
-                Já tem uma conta?{" "}
+                Already have an account?{" "}
                 <Link to="/login" className="text-primary hover:underline font-medium">
-                  Entre aqui
+                  Sign in here
                 </Link>
               </p>
             </div>

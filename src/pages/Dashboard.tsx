@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getApiUrl } from "@/config/api";
 import { 
   Table, 
   TableBody, 
@@ -41,63 +42,106 @@ interface Certificate {
   name: string;
   formNumber: string;
   workOrderNumber: string;
-  quantity: number;
-  status: "INSPECTED" | "PENDING" | "REJECTED";
+  quantity: number | string;
+  status: "INSPECTED" | "PENDING" | "REJECTED" | string;
   remarks: string;
   approval: string;
+  user?: { id: number; name: string };
 }
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [selectedCertificates, setSelectedCertificates] = useState<string[]>([]);
-  
-  // Mock data - em produção viria de uma API
-  const [certificates, setCertificates] = useState<Certificate[]>([
-    {
-      id: "1",
-      description: "DBL TRK.SWL TYPE I FWD AFT SEAT",
-      partNumber: "2524-015 (-14B)",
-      serialNumber: "930527-7",
-      name: "N225JD-0497",
-      formNumber: "SUA-4246",
-      workOrderNumber: "4246",
-      quantity: 1,
-      status: "INSPECTED",
-      remarks: "REMOVED ARTICLE FROM AIRCRAFT N225JD GULFSTREAM G200. AIRCRAFT SERIAL NUMBER: 028, AIRCRAFT TTSN: 7,177.2, AIRCRAFT TCSN: 4,292.",
-      approval: "CRS#WAVR866D"
-    },
-    {
-      id: "2",
-      description: "HYDRAULIC PUMP ASSEMBLY",
-      partNumber: "1234-567 (-89A)",
-      serialNumber: "ABC123-4",
-      name: "N225JD-0498",
-      formNumber: "SUA-4246",
-      workOrderNumber: "4246",
-      quantity: 1,
-      status: "INSPECTED",
-      remarks: "REMOVED ARTICLE FROM AIRCRAFT N225JD GULFSTREAM G200. AIRCRAFT SERIAL NUMBER: 028, AIRCRAFT TTSN: 7,177.2, AIRCRAFT TCSN: 4,292.",
-      approval: "CRS#WAVR866D"
-    }
-  ]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("isAuthenticated");
-    navigate("/login");
-    toast({
-      title: "Logout realizado",
-      description: "Você foi desconectado do sistema",
-    });
+  const fetchCertificates = async () => {
+    const token = localStorage.getItem("access_token");
+    try {
+      const res = await fetch(getApiUrl("/api/certificates"), {
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error("Error fetching certificates");
+
+      const data = await res.json();
+      setCertificates(data);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to load certificates",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setCertificates(prev => prev.filter(cert => cert.id !== id));
-    toast({
-      title: "Certificado removido",
-      description: "O certificado foi removido com sucesso",
-    });
+  useEffect(() => {
+    fetchCertificates();
+  }, []);
+
+  const handleLogout = async () => {
+    const token = localStorage.getItem("access_token");
+    
+    try {
+      await fetch(getApiUrl('/api/logout'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      localStorage.removeItem("isAuthenticated");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
+      
+      navigate("/login");
+      toast({
+        title: "Logged out",
+        description: "You have been logged out of the system",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const token = localStorage.getItem("access_token");
+    
+    try {
+      const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) throw new Error("Error deleting certificate");
+
+      setCertificates(prev => prev.filter(cert => cert.id !== id));
+      
+      setSelectedCertificates(prev => prev.filter(certId => certId !== id));
+      
+      toast({
+        title: "Certificate deleted!",
+        description: "Certificate was successfully removed",
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to delete certificate",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGeneratePDF = (certificate: Certificate) => {
@@ -107,8 +151,8 @@ const Dashboard = () => {
   const handleGenerateMultiplePDFs = () => {
     if (selectedCertificates.length === 0) {
       toast({
-        title: "Nenhum certificado selecionado",
-        description: "Selecione ao menos um certificado para gerar os PDFs",
+        title: "No certificates selected",
+        description: "Select at least one certificate to generate PDFs",
         variant: "destructive"
       });
       return;
@@ -141,10 +185,11 @@ const Dashboard = () => {
   );
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toUpperCase()) {
       case "INSPECTED":
         return "bg-success/10 text-success border-success/20";
       case "PENDING":
+      case "PENDENTE":
         return "bg-warning/10 text-warning border-warning/20";
       case "REJECTED":
         return "bg-destructive/10 text-destructive border-destructive/20";
@@ -160,29 +205,26 @@ const Dashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <div className="flex items-center">
-                <Plane className="w-8 h-8 text-primary mr-3" />
-                <div>
-                  <h1 className="text-xl font-bold text-foreground">Aviation Certs</h1>
-                  <p className="text-sm text-muted-foreground hidden sm:block">
-                    Sistema de Gerenciamento de Certificados FAA
-                  </p>
-                </div>
+              <Plane className="w-8 h-8 text-primary mr-3" />
+              <div>
+                <h1 className="text-xl font-bold text-foreground">Aviation Certs</h1>
+                <p className="text-sm text-muted-foreground hidden sm:block">
+                  FAA Certificate Management System
+                </p>
               </div>
             </div>
-            
             <div className="flex items-center space-x-4">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <User className="w-4 h-4 mr-2" />
-                    Usuário
+                    User
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="w-4 h-4 mr-2" />
-                    Sair
+                    Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -195,10 +237,10 @@ const Dashboard = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            Certificados FAA Form 8130-3
+            FAA Form 8130-3 Certificates
           </h2>
           <p className="text-muted-foreground">
-            Gerencie seus certificados de liberação autorizada
+            Manage your authorized release certificates
           </p>
         </div>
 
@@ -207,7 +249,7 @@ const Dashboard = () => {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Buscar por nome, part number ou serial..."
+              placeholder="Search by name, part number or serial..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -217,12 +259,12 @@ const Dashboard = () => {
             {selectedCertificates.length > 0 && (
               <Button variant="outline" onClick={handleGenerateMultiplePDFs}>
                 <Files className="w-4 h-4 mr-2" />
-                Gerar {selectedCertificates.length} PDFs
+                Generate {selectedCertificates.length} PDFs
               </Button>
             )}
             <Button onClick={() => navigate("/add-certificate")}>
               <Plus className="w-4 h-4 mr-2" />
-              Novo Certificado
+              New Certificate
             </Button>
           </div>
         </div>
@@ -231,7 +273,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Certificados</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Certificates</CardTitle>
               <FileText className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -241,24 +283,24 @@ const Dashboard = () => {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inspecionados</CardTitle>
+              <CardTitle className="text-sm font-medium">Inspected</CardTitle>
               <div className="w-3 h-3 bg-success rounded-full"></div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {certificates.filter(c => c.status === "INSPECTED").length}
+                {certificates.filter(c => c.status.toUpperCase() === "INSPECTED").length}
               </div>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+              <CardTitle className="text-sm font-medium">Pending</CardTitle>
               <div className="w-3 h-3 bg-warning rounded-full"></div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {certificates.filter(c => c.status === "PENDING").length}
+                {certificates.filter(c => c.status.toUpperCase() === "PENDING" || c.status.toUpperCase() === "PENDENTE").length}
               </div>
             </CardContent>
           </Card>
@@ -267,9 +309,9 @@ const Dashboard = () => {
         {/* Certificates Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Lista de Certificados</CardTitle>
+            <CardTitle>Certificates List</CardTitle>
             <CardDescription>
-              Todos os certificados FAA Form 8130-3 registrados no sistema
+              All FAA Form 8130-3 certificates registered in the system
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -283,12 +325,12 @@ const Dashboard = () => {
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
-                    <TableHead>Nome</TableHead>
+                    <TableHead>Name</TableHead>
                     <TableHead>Part Number</TableHead>
                     <TableHead>Serial Number</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Work Order</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -300,14 +342,12 @@ const Dashboard = () => {
                           onCheckedChange={() => handleSelectCertificate(certificate.id)}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {certificate.name}
-                      </TableCell>
+                      <TableCell className="font-medium">{certificate.name}</TableCell>
                       <TableCell>{certificate.partNumber}</TableCell>
                       <TableCell>{certificate.serialNumber}</TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(certificate.status)}>
-                          {certificate.status}
+                          {certificate.status.toUpperCase()}
                         </Badge>
                       </TableCell>
                       <TableCell>{certificate.workOrderNumber}</TableCell>
@@ -321,18 +361,18 @@ const Dashboard = () => {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => handleGeneratePDF(certificate)}>
                               <FileText className="w-4 h-4 mr-2" />
-                              Gerar PDF
+                              Generate PDF
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => navigate(`/edit-certificate/${certificate.id}`)}>
                               <Edit className="w-4 h-4 mr-2" />
-                              Editar
+                              Edit
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleDelete(certificate.id)}
                               className="text-destructive"
                             >
                               <Trash2 className="w-4 h-4 mr-2" />
-                              Excluir
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -344,7 +384,7 @@ const Dashboard = () => {
               
               {filteredCertificates.length === 0 && (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">Nenhum certificado encontrado</p>
+                  <p className="text-muted-foreground">No certificates found</p>
                 </div>
               )}
             </div>
