@@ -6,27 +6,27 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getApiUrl } from "@/config/api";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Plane, 
-  Plus, 
-  Search, 
-  MoreHorizontal, 
-  Edit, 
-  Trash2, 
+import {
+  Plane,
+  Plus,
+  Search,
+  MoreHorizontal,
+  Edit,
+  Trash2,
   FileText,
   LogOut,
   User,
@@ -34,19 +34,35 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-interface Certificate {
+interface CertificateItem {
   id: string;
+  item: string;
   description: string;
   partNumber: string;
-  serialNumber: string;
-  name: string;
-  formNumber: string;
-  workOrderNumber: string;
-  quantity: number | string;
-  status: "INSPECTED" | "PENDING" | "REJECTED" | string;
-  remarks: string;
-  approval: string;
+  quantity: string;
+  serialNumber?: string;
+  status: string;
+}
+
+interface Certificate {
+  id: string;
+  approvingAuthority: string;
+  approvingCountry: string;
+  formTrackingNumber: string;
+  organizationName: string;
+  organizationAddress?: string;
+  workOrderContractInvoiceNumber?: string;
+  remarks?: string;
+  conformityApprovedDesign: boolean;
+  conformityNonApprovedDesign: boolean;
+  returnToService: boolean;
+  otherRegulation: boolean;
+  approvalAuthorizationNo?: string;
+  approvalCertificateNo?: string;
   user?: { id: number; name: string };
+  items: CertificateItem[];
+  created_at: string;
+  updated_at: string;
 }
 
 const Dashboard = () => {
@@ -55,6 +71,7 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [selectedCertificates, setSelectedCertificates] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchCertificates = async () => {
     const token = localStorage.getItem("access_token");
@@ -78,7 +95,9 @@ const Dashboard = () => {
         description: "Failed to load certificates",
         variant: "destructive",
       });
-    }
+    } finally {
+        setLoading(false);
+      }
   };
 
   useEffect(() => {
@@ -87,7 +106,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
     const token = localStorage.getItem("access_token");
-    
+
     try {
       await fetch(getApiUrl('/api/logout'), {
         method: 'POST',
@@ -102,7 +121,7 @@ const Dashboard = () => {
       localStorage.removeItem("isAuthenticated");
       localStorage.removeItem("access_token");
       localStorage.removeItem("user");
-      
+
       navigate("/login");
       toast({
         title: "Logged out",
@@ -113,7 +132,7 @@ const Dashboard = () => {
 
   const handleDelete = async (id: string) => {
     const token = localStorage.getItem("access_token");
-    
+
     try {
       const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
         method: "DELETE",
@@ -127,9 +146,8 @@ const Dashboard = () => {
       if (!res.ok) throw new Error("Error deleting certificate");
 
       setCertificates(prev => prev.filter(cert => cert.id !== id));
-      
       setSelectedCertificates(prev => prev.filter(certId => certId !== id));
-      
+
       toast({
         title: "Certificate deleted!",
         description: "Certificate was successfully removed",
@@ -157,13 +175,13 @@ const Dashboard = () => {
       });
       return;
     }
-    
+
     const selectedIds = selectedCertificates.join(",");
     navigate(`/batch-pdf-preview/${selectedIds}`);
   };
 
   const handleSelectAll = () => {
-    if (selectedCertificates.length === filteredCertificates.length) {
+    if (selectedCertificates.length === filteredCertificates.length && filteredCertificates.length > 0) {
       setSelectedCertificates([]);
     } else {
       setSelectedCertificates(filteredCertificates.map(cert => cert.id));
@@ -171,17 +189,21 @@ const Dashboard = () => {
   };
 
   const handleSelectCertificate = (id: string) => {
-    setSelectedCertificates(prev => 
-      prev.includes(id) 
+    setSelectedCertificates(prev =>
+      prev.includes(id)
         ? prev.filter(certId => certId !== id)
         : [...prev, id]
     );
   };
 
   const filteredCertificates = certificates.filter(cert =>
-    cert.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())
+    cert.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cert.formTrackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cert.workOrderContractInvoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cert.items.some(item =>
+      item.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.serialNumber || "").toLowerCase().includes(searchTerm.toLowerCase())
+    )
   );
 
   const getStatusColor = (status: string) => {
@@ -196,6 +218,49 @@ const Dashboard = () => {
       default:
         return "bg-muted/10 text-muted-foreground border-muted/20";
     }
+  };
+
+    if (loading) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading certificate...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const getCertificateStatus = (items: CertificateItem[]) => {
+    const statusCount = {
+      REJECTED: 0,
+      PENDING: 0,
+      INSPECTED: 0,
+      OTHER: 0
+    };
+
+    items.forEach(item => {
+      const status = item.status.toUpperCase();
+      if (status === "REJECTED") statusCount.REJECTED++;
+      else if (status === "PENDING" || status === "PENDENTE") statusCount.PENDING++;
+      else if (status === "INSPECTED") statusCount.INSPECTED++;
+      else statusCount.OTHER++;
+    });
+
+    if (statusCount.REJECTED > 0) return "REJECTED";
+    if (statusCount.PENDING > 0) return "PENDING";
+    if (statusCount.INSPECTED === items.length) return "INSPECTED";
+    return "MIXED";
+  };
+
+  // Função para formatar a data
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -249,7 +314,7 @@ const Dashboard = () => {
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search by name, part number or serial..."
+              placeholder="Search by tracking number, organization, work ord..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -269,8 +334,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Certificates</CardTitle>
@@ -280,27 +344,44 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">{certificates.length}</div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inspected</CardTitle>
+              <CardTitle className="text-sm font-medium">Inspected Items</CardTitle>
               <div className="w-3 h-3 bg-success rounded-full"></div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {certificates.filter(c => c.status.toUpperCase() === "INSPECTED").length}
+                {certificates.reduce((total, cert) =>
+                  total + cert.items.filter(item =>
+                    item.status.toUpperCase() === "INSPECTED").length, 0)}
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <CardTitle className="text-sm font-medium">Pending Items</CardTitle>
               <div className="w-3 h-3 bg-warning rounded-full"></div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {certificates.filter(c => c.status.toUpperCase() === "PENDING" || c.status.toUpperCase() === "PENDENTE").length}
+                {certificates.reduce((total, cert) =>
+                  total + cert.items.filter(item =>
+                    item.status.toUpperCase() === "PENDING" ||
+                    item.status.toUpperCase() === "PENDENTE").length, 0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Items Total</CardTitle>
+              <div className="w-3 h-3 bg-primary rounded-full"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {certificates.reduce((total, cert) => total + cert.items.length, 0)}
               </div>
             </CardContent>
           </Card>
@@ -320,16 +401,17 @@ const Dashboard = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">
-                      <Checkbox 
+                      <Checkbox
                         checked={selectedCertificates.length === filteredCertificates.length && filteredCertificates.length > 0}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Part Number</TableHead>
-                    <TableHead>Serial Number</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Tracking Number</TableHead>
+                    <TableHead>Organization</TableHead>
+                    <TableHead>Items Count</TableHead>
+                    {/* <TableHead>Status</TableHead> */}
                     <TableHead>Work Order</TableHead>
+                    <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -337,20 +419,25 @@ const Dashboard = () => {
                   {filteredCertificates.map((certificate) => (
                     <TableRow key={certificate.id}>
                       <TableCell>
-                        <Checkbox 
+                        <Checkbox
                           checked={selectedCertificates.includes(certificate.id)}
                           onCheckedChange={() => handleSelectCertificate(certificate.id)}
                         />
                       </TableCell>
-                      <TableCell className="font-medium">{certificate.name}</TableCell>
-                      <TableCell>{certificate.partNumber}</TableCell>
-                      <TableCell>{certificate.serialNumber}</TableCell>
+                      <TableCell className="font-medium">{certificate.formTrackingNumber}</TableCell>
+                      <TableCell>{certificate.organizationName}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(certificate.status)}>
-                          {certificate.status.toUpperCase()}
+                        <Badge variant="outline" className="ml-1">
+                          {certificate.items.length} items
                         </Badge>
                       </TableCell>
-                      <TableCell>{certificate.workOrderNumber}</TableCell>
+                      {/* <TableCell>
+                        <Badge className={getStatusColor(getCertificateStatus(certificate.items))}>
+                          {getCertificateStatus(certificate.items)}
+                        </Badge>
+                      </TableCell> */}
+                      <TableCell>{certificate.workOrderContractInvoiceNumber || "-"}</TableCell>
+                      <TableCell>{formatDate(certificate.created_at)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -367,7 +454,7 @@ const Dashboard = () => {
                               <Edit className="w-4 h-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => handleDelete(certificate.id)}
                               className="text-destructive"
                             >
@@ -381,7 +468,7 @@ const Dashboard = () => {
                   ))}
                 </TableBody>
               </Table>
-              
+
               {filteredCertificates.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-muted-foreground">No certificates found</p>

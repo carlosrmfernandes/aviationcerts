@@ -6,41 +6,80 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Save, Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/config/api";
 
 interface CertificateForm {
-  description: string;
-  partNumber: string;
-  serialNumber: string;
-  name: string;
-  formNumber: string;
-  workOrderNumber: string;
-  quantity: string;
-  status: string;
+  id?: string;
+  approvingAuthority: string;
+  approvingCountry: string;
+  formTrackingNumber: string;
+  organizationName: string;
+  organizationAddress: string;
+  workOrderContractInvoiceNumber: string;
+  items: Array<{
+    item: string;
+    description: string;
+    partNumber: string;
+    quantity: string;
+    serialNumber: string;
+    status: string;
+  }>;
   remarks: string;
-  approval: string;
+  conformityApprovedDesign: boolean;
+  conformityNonApprovedDesign: boolean;
+  returnToService: boolean;
+  otherRegulation: boolean;
+  authorizedSignature13: string;
+  approvalAuthorizationNo: string;
+  authorizedSignature14: string;
+  approvalCertificateNo: string;
+  name13: string;
+  date13: string;
+  name14: string;
+  date14: string;
 }
 
 const EditCertificate = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
   const { toast } = useToast();
+  const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  
   const [formData, setFormData] = useState<CertificateForm>({
-    description: "",
-    partNumber: "",
-    serialNumber: "",
-    name: "",
-    formNumber: "",
-    workOrderNumber: "",
-    quantity: "1",
-    status: "PENDING",
+    approvingAuthority: "FAA",
+    approvingCountry: "United States",
+    formTrackingNumber: "",
+    organizationName: "",
+    organizationAddress: "",
+    workOrderContractInvoiceNumber: "",
+    items: [{
+      item: "1",
+      description: "",
+      partNumber: "",
+      quantity: "1",
+      serialNumber: "",
+      status: "PENDING"
+    }],
     remarks: "",
-    approval: ""
+    conformityApprovedDesign: false,
+    conformityNonApprovedDesign: false,
+    returnToService: false,
+    otherRegulation: false,
+    authorizedSignature13: "",
+    approvalAuthorizationNo: "",
+    authorizedSignature14: "",
+    approvalCertificateNo: "",
+    name13: "",
+    date13: "",
+    name14: "",
+    date14: ""
   });
 
+  // Fetch certificate data on component mount
   useEffect(() => {
     const fetchCertificate = async () => {
       if (!id) return;
@@ -48,52 +87,80 @@ const EditCertificate = () => {
       const token = localStorage.getItem("access_token");
       try {
         const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
+          method: "GET",
           headers: {
-            "Content-Type": "application/json",
             "Accept": "application/json",
-            "Authorization": `Bearer ${token}`
-          }
+            "Authorization": `Bearer ${token}`,
+          },
         });
 
-        if (!res.ok) throw new Error("Error fetching certificate");
+        if (!res.ok) {
+          throw new Error("Error fetching certificate");
+        }
 
         const data = await res.json();
-        
-        // Map API data to form
-        setFormData({
-          description: data.description || "",
-          partNumber: data.partNumber || "",
-          serialNumber: data.serialNumber || "",
-          name: data.name || "",
-          formNumber: data.formNumber || "",
-          workOrderNumber: data.workOrderNumber || "",
-          quantity: data.quantity?.toString() || "1",
-          status: data.status || "PENDING",
-          remarks: data.remarks || "",
-          approval: data.approval || ""
-        });
-      } catch (error) {
-        console.error(error);
+        setFormData(data);
+      } catch (error: any) {
+        console.error("Error fetching certificate:", error);
         toast({
           title: "Error",
-          description: "Failed to load certificate",
+          description: error.message || "Could not fetch certificate",
           variant: "destructive",
         });
-        navigate("/dashboard");
+      } finally {
+        setFetching(false);
       }
     };
 
     fetchCertificate();
-  }, [id, toast, navigate]);
+  }, [id, toast]);
 
-  const handleInputChange = (field: keyof CertificateForm, value: string) => {
+  const handleInputChange = (field: keyof CertificateForm, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleItemChange = (index: number, field: string, value: string) => {
+    const updatedItems = [...formData.items];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setFormData(prev => ({ ...prev, items: updatedItems }));
+  };
+
+  const addNewItem = () => {
+    setFormData(prev => ({
+      ...prev,
+      items: [
+        ...prev.items,
+        {
+          item: `${prev.items.length + 1}`,
+          description: "",
+          partNumber: "",
+          quantity: "1",
+          serialNumber: "",
+          status: "PENDING"
+        }
+      ]
+    }));
+  };
+
+  const removeItem = (index: number) => {
+    if (formData.items.length <= 1) return;
+    
+    const updatedItems = [...formData.items];
+    updatedItems.splice(index, 1);
+    
+    // Renumber items
+    const renumberedItems = updatedItems.map((item, idx) => ({
+      ...item,
+      item: `${idx + 1}`
+    }));
+    
+    setFormData(prev => ({ ...prev, items: renumberedItems }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     const token = localStorage.getItem("access_token");
     try {
       const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
@@ -101,40 +168,43 @@ const EditCertificate = () => {
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          description: formData.description,
-          partNumber: formData.partNumber,
-          serialNumber: formData.serialNumber,
-          name: formData.name,
-          formNumber: formData.formNumber,
-          workOrderNumber: formData.workOrderNumber,
-          quantity: formData.quantity,
-          status: formData.status,
-          remarks: formData.remarks,
-          approval: formData.approval
-        })
+        body: JSON.stringify(formData)
       });
 
-      if (!res.ok) throw new Error("Error updating certificate");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Error updating certificate");
+      }
 
       toast({
         title: "Certificate updated!",
-        description: "Changes were saved successfully",
+        description: "Certificate was updated successfully",
       });
       navigate("/dashboard");
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("Error updating certificate:", error);
       toast({
         title: "Error",
-        description: "Failed to update certificate",
+        description: error.message || "Could not update certificate",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  if (fetching) {
+    return (
+      <div className="min-h-screen bg-muted/30 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading certificate...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -155,7 +225,7 @@ const EditCertificate = () => {
               <div>
                 <h1 className="text-xl font-bold text-foreground">Edit Certificate</h1>
                 <p className="text-sm text-muted-foreground">
-                  FAA Form 8130-3 - {formData.name}
+                  FAA Form 8130-3 - Authorized Release Certificate
                 </p>
               </div>
             </div>
@@ -164,141 +234,371 @@ const EditCertificate = () => {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle>Edit Certificate Information</CardTitle>
+            <CardTitle>FAA Form 8130-3 - Authorized Release Certificate</CardTitle>
             <CardDescription>
-              Modify the necessary fields of the FAA Form 8130-3 certificate
+              Edit all required fields for the FAA Form 8130-3 certificate
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Section 1: Approving Authority */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-md">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Form Name *</Label>
+                  <Label htmlFor="approvingAuthority">1. Approving Civil Aviation Authority</Label>
                   <Input
-                    id="name"
-                    placeholder="Ex: N225JD-0497"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    id="approvingAuthority"
+                    value={formData.approvingAuthority}
+                    onChange={(e) => handleInputChange("approvingAuthority", e.target.value)}
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="formNumber">Form Number *</Label>
+                  <Label htmlFor="approvingCountry">Country</Label>
                   <Input
-                    id="formNumber"
-                    placeholder="Ex: SUA-4246"
-                    value={formData.formNumber}
-                    onChange={(e) => handleInputChange("formNumber", e.target.value)}
+                    id="approvingCountry"
+                    value={formData.approvingCountry}
+                    onChange={(e) => handleInputChange("approvingCountry", e.target.value)}
                     required
                   />
                 </div>
               </div>
 
-              {/* Part Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Section 2: Form Title */}
+              <div className="p-4 border rounded-md">
                 <div className="space-y-2">
-                  <Label htmlFor="partNumber">Part Number *</Label>
-                  <Input
-                    id="partNumber"
-                    placeholder="Ex: 2524-015 (-14B)"
-                    value={formData.partNumber}
-                    onChange={(e) => handleInputChange("partNumber", e.target.value)}
-                    required
-                  />
+                  <Label>2. AUTHORIZED RELEASE CERTIFICATE</Label>
+                  <p className="text-sm text-muted-foreground">FAA Form 8130–3, AIRWORTHINESS APPROVAL TAG</p>
                 </div>
-                
+              </div>
+
+              {/* Section 3: Form Tracking Number */}
+              <div className="p-4 border rounded-md">
                 <div className="space-y-2">
-                  <Label htmlFor="serialNumber">Serial Number *</Label>
+                  <Label htmlFor="formTrackingNumber">3. Form Tracking Number</Label>
                   <Input
-                    id="serialNumber"
-                    placeholder="Ex: 930527-7"
-                    value={formData.serialNumber}
-                    onChange={(e) => handleInputChange("serialNumber", e.target.value)}
+                    id="formTrackingNumber"
+                    value={formData.formTrackingNumber}
+                    onChange={(e) => handleInputChange("formTrackingNumber", e.target.value)}
                     required
                   />
                 </div>
               </div>
 
-              {/* Work Order and Status */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Section 4: Organization Details */}
+              <div className="grid grid-cols-1 gap-6 p-4 border rounded-md">
                 <div className="space-y-2">
-                  <Label htmlFor="workOrderNumber">Work Order Number *</Label>
-                  <Input
-                    id="workOrderNumber"
-                    placeholder="Ex: 4246"
-                    value={formData.workOrderNumber}
-                    onChange={(e) => handleInputChange("workOrderNumber", e.target.value)}
+                  <Label htmlFor="organizationName">4. Organization Name and Address</Label>
+                  <Textarea
+                    id="organizationName"
+                    value={formData.organizationName}
+                    onChange={(e) => handleInputChange("organizationName", e.target.value)}
+                    rows={2}
                     required
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity *</Label>
+                  <Label htmlFor="workOrderContractInvoiceNumber">5. Work Order/Contract/Invoice Number:</Label>
                   <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={formData.quantity}
-                    onChange={(e) => handleInputChange("quantity", e.target.value)}
+                    id="workOrderContractInvoiceNumber"
+                    value={formData.workOrderContractInvoiceNumber}
+                    onChange={(e) => handleInputChange("workOrderContractInvoiceNumber", e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Section 6-11: Items Table */}
+              <div className="p-4 border rounded-md">
+                <Label className="mb-4 block">Items (6-11)</Label>
+                
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="p-2 text-left font-normal">6. Item</th>
+                        <th className="p-2 text-left font-normal">7. Description</th>
+                        <th className="p-2 text-left font-normal">8. Part Number</th>
+                        <th className="p-2 text-left font-normal">9. Quantity</th>
+                        <th className="p-2 text-left font-normal">10. Serial Number</th>
+                        <th className="p-2 text-left font-normal">11. Status/Work</th>
+                        <th className="p-2 text-left font-normal">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.items.map((item, index) => (
+                        <tr key={index} className="border-b">
+                          <td className="p-2">
+                            <Input
+                              value={item.item}
+                              onChange={(e) => handleItemChange(index, "item", e.target.value)}
+                              className="w-16"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={item.description}
+                              onChange={(e) => handleItemChange(index, "description", e.target.value)}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={item.partNumber}
+                              onChange={(e) => handleItemChange(index, "partNumber", e.target.value)}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
+                              className="w-20"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Input
+                              value={item.serialNumber}
+                              onChange={(e) => handleItemChange(index, "serialNumber", e.target.value)}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <Select 
+                              value={item.status} 
+                              onValueChange={(value) => handleItemChange(index, "status", value)}
+                            >
+                              <SelectTrigger className="w-32">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PENDING">PENDING</SelectItem>
+                                <SelectItem value="INSPECTED">INSPECTED</SelectItem>
+                                <SelectItem value="REJECTED">REJECTED</SelectItem>
+                                <SelectItem value="OVERHAULED">OVERHAULED</SelectItem>
+                                <SelectItem value="REPAIRED">REPAIRED</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="p-2">
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => removeItem(index)}
+                              disabled={formData.items.length <= 1}
+                            >
+                              Remove
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addNewItem}
+                  className="mt-4"
+                >
+                  Add Item
+                </Button>
+              </div>
+
+              {/* Section 12: Remarks */}
+              <div className="p-4 border rounded-md">
+                <div className="space-y-2">
+                  <Label htmlFor="remarks">12. Remarks</Label>
+                  <Textarea
+                    id="remarks"
+                    value={formData.remarks}
+                    onChange={(e) => handleInputChange("remarks", e.target.value)}
+                    rows={4}
                     required
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="status">Status *</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange("status", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PENDING">PENDING</SelectItem>
-                      <SelectItem value="INSPECTED">INSPECTED</SelectItem>
-                      <SelectItem value="REJECTED">REJECTED</SelectItem>
-                    </SelectContent>
-                  </Select>
+              </div>
+
+              {/* Section 13: Conformity */}
+              <div className="p-4 border rounded-md">
+                <div className="space-y-4">
+                  <Label>13a. Certifies the items identified above were manufactured in conformity to:</Label>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="conformityApprovedDesign"
+                      checked={formData.conformityApprovedDesign}
+                      onCheckedChange={(checked) => 
+                        handleInputChange("conformityApprovedDesign", checked === true)
+                      }
+                    />
+                    <label
+                      htmlFor="conformityApprovedDesign"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Approved design data and are in a condition for safe operation.
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="conformityNonApprovedDesign"
+                      checked={formData.conformityNonApprovedDesign}
+                      onCheckedChange={(checked) => 
+                        handleInputChange("conformityNonApprovedDesign", checked === true)
+                      }
+                    />
+                    <label
+                      htmlFor="conformityNonApprovedDesign"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Non-approved design data specified in Block 12.
+                    </label>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="authorizedSignature13">13b. Authorized Signature</Label>
+                      <Input
+                        id="authorizedSignature13"
+                        value={formData.authorizedSignature13}
+                        onChange={(e) => handleInputChange("authorizedSignature13", e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="approvalAuthorizationNo">13c. Approval/Authorization No.</Label>
+                      <Input
+                        id="approvalAuthorizationNo"
+                        value={formData.approvalAuthorizationNo}
+                        onChange={(e) => handleInputChange("approvalAuthorizationNo", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name13">13d. Name (Typed or Printed)</Label>
+                      <Input
+                        id="name13"
+                        value={formData.name13}
+                        onChange={(e) => handleInputChange("name13", e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="date13">13e. Date (dd/mmm/yyyy)</Label>
+                      <Input
+                        id="date13"
+                        value={formData.date13}
+                        onChange={(e) => handleInputChange("date13", e.target.value)}
+                        placeholder="e.g., 15/Dec/2023"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Description *</Label>
-                <Input
-                  id="description"
-                  placeholder="Ex: DBL TRK.SWL TYPE I FWD AFT SEAT"
-                  value={formData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
-                  required
-                />
+              {/* Section 14: Return to Service */}
+              <div className="p-4 border rounded-md">
+                <div className="space-y-4">
+                  <Label>14a.</Label>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="returnToService"
+                      checked={formData.returnToService}
+                      onCheckedChange={(checked) => 
+                        handleInputChange("returnToService", checked === true)
+                      }
+                    />
+                    <label
+                      htmlFor="returnToService"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      14 CFR 43.9 Return to Service
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="otherRegulation"
+                      checked={formData.otherRegulation}
+                      onCheckedChange={(checked) => 
+                        handleInputChange("otherRegulation", checked === true)
+                      }
+                    />
+                    <label
+                      htmlFor="otherRegulation"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Other regulation specified in Block 12
+                    </label>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Certifies that unless otherwise specified in Block 12, the work identified in Block 11 and described in Block 12 was accomplished in accordance with Title 14, Code of Federal Regulations, part 43 and in respect to that work, the items are approved for return to service.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="authorizedSignature14">14b. Authorized Signature</Label>
+                      <Input
+                        id="authorizedSignature14"
+                        value={formData.authorizedSignature14}
+                        onChange={(e) => handleInputChange("authorizedSignature14", e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="approvalCertificateNo">14c. Approval/Certificate No.</Label>
+                      <Input
+                        id="approvalCertificateNo"
+                        value={formData.approvalCertificateNo}
+                        onChange={(e) => handleInputChange("approvalCertificateNo", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name14">14d. Name (Typed or Printed)</Label>
+                      <Input
+                        id="name14"
+                        value={formData.name14}
+                        onChange={(e) => handleInputChange("name14", e.target.value)}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="date14">14e. Date (dd/mmm/yyyy)</Label>
+                      <Input
+                        id="date14"
+                        value={formData.date14}
+                        onChange={(e) => handleInputChange("date14", e.target.value)}
+                        placeholder="e.g., 15/Dec/2023"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Remarks */}
-              <div className="space-y-2">
-                <Label htmlFor="remarks">Remarks *</Label>
-                <Textarea
-                  id="remarks"
-                  placeholder="Describe inspection details, removal procedures, or other work performed..."
-                  value={formData.remarks}
-                  onChange={(e) => handleInputChange("remarks", e.target.value)}
-                  rows={4}
-                  required
-                />
-              </div>
-
-              {/* Approval */}
-              <div className="space-y-2">
-                <Label htmlFor="approval">Approval Code *</Label>
-                <Input
-                  id="approval"
-                  placeholder="Ex: CRS#WAVR866D"
-                  value={formData.approval}
-                  onChange={(e) => handleInputChange("approval", e.target.value)}
-                  required
-                />
+              {/* User/Installer Responsibilities */}
+              <div className="p-4 border rounded-md bg-muted/30">
+                <h3 className="font-semibold mb-2">User/Installer Responsibilities</h3>
+                <p className="text-sm text-muted-foreground mb-2">
+                  It is important to understand that the existence of this document alone does not automatically constitute authority to install the aircraft engine/propeller/article.
+                </p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Where the user/installer performs work in accordance with the national regulations of an airworthiness authority different than the airworthiness authority of the country specified in Block 1, it is essential that the user/installer ensures that his/her airworthiness authority accepts aircraft engine(s)/propeller(s)/article(s) from the airworthiness authority of the country specified in Block 1.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Statements in Blocks 13a and 14a do not constitute installation certification. In all cases, aircraft maintenance records must contain an installation certification issued in accordance with the national regulations by the user/installer before the aircraft may be flown.
+                </p>
               </div>
 
               {/* Action Buttons */}
@@ -318,7 +618,7 @@ const EditCertificate = () => {
                   disabled={loading}
                 >
                   <Save className="w-4 h-4 mr-2" />
-                  {loading ? "Saving..." : "Save Changes"}
+                  {loading ? "Updating..." : "Update Certificate"}
                 </Button>
               </div>
             </form>
