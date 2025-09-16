@@ -76,7 +76,7 @@ const PDFPreview = () => {
         });
 
         if (!res.ok) throw new Error("Error fetching certificate");
-                
+
         const data = await res.json();
         setCertificate(data);
       } catch (error) {
@@ -104,54 +104,52 @@ const PDFPreview = () => {
     });
   };
 
-  const handleDownloadPDF = () => {
-    const element = document.getElementById("pdf-content");
-    if (!element) {
+const handleDownloadPDF = () => {
+  const element = document.getElementById("pdf-content");
+  if (!element) {
+    toast({
+      title: "Error",
+      description: "PDF content not found",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Configurações otimizadas para caber em uma página
+  const opt = {
+    margin: 0.2, // Margem ainda menor
+    filename: `FAA_Form_8130-3_${certificate?.formNumber || 'certificate'}.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      width: 1123, // Largura específica para A4 landscape
+      height: 794, // Altura específica para A4 landscape
+    },
+    jsPDF: { 
+      orientation: "landscape", 
+      unit: "mm", 
+      format: "a4",
+      compress: true
+    }
+  };
+
+  html2pdf()
+    .set(opt)
+    .from(element)
+    .save()
+    .then(() => {     
+    })
+    .catch((error) => {
+      console.error("PDF generation error:", error);
       toast({
         title: "Error",
-        description: "PDF content not found",
+        description: "Failed to generate PDF",
         variant: "destructive",
       });
-      return;
-    }
-
-    // Configurações otimizadas para o html2pdf
-    const opt = {
-      margin: 0.3,
-      filename: `FAA_Form_8130-3_${certificate?.formNumber || 'certificate'}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2,
-        useCORS: true,
-        logging: false
-      },
-      jsPDF: { 
-        orientation: "landscape", 
-        unit: "in", 
-        format: "a4",
-        compress: true
-      }
-    };
-
-    html2pdf()
-      .set(opt)
-      .from(element)
-      .save()
-      .then(() => {
-        toast({
-          title: "PDF Generated!",
-          description: "Certificate was successfully generated",
-        });
-      })
-      .catch((error) => {
-        console.error("PDF generation error:", error);
-        toast({
-          title: "Error",
-          description: "Failed to generate PDF",
-          variant: "destructive",
-        });
-      });
-  };
+    });
+};
 
   const handlePrint = () => {
     window.print();
@@ -214,10 +212,10 @@ const PDFPreview = () => {
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
-              <Button onClick={handleDownloadPDF}>
+              {/* <Button onClick={handleDownloadPDF}>
                 <Download className="w-4 h-4 mr-2" />
                 Download PDF
-              </Button>
+              </Button> */}
             </div>
           </div>
         </div>
@@ -225,7 +223,7 @@ const PDFPreview = () => {
 
       {/* PDF Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-0 print:max-w-full">
-        <div id="pdf-content">
+        <div id="pdf-content" className="certificate-content">
           <table className="table table-fixed w-full border-collapse">
             <thead>
               <tr>
@@ -334,7 +332,7 @@ const PDFPreview = () => {
                   <div className="text-[10px] font-bold mb-2">
                     12. Remarks:
                   </div>
-                  <div className="text-sm leading-relaxed h-40">
+                  <div className="text-sm leading-relaxed  h-40">
                     {certificate.remarks}
                   </div>
                 </td>

@@ -1,106 +1,148 @@
+/* pdf.css */
+
+/* Estilos para visualização em tela */
+.certificate-content {
+  font-family: 'Times New Roman', Times, serif !important;
+  max-width: 1100px;
+  margin: 0 auto;
+  /* border: 2px solid #222; */
+  padding: 10px;
+  box-sizing: border-box;
+}
+
+.certificate-content * {
+  font-family: 'Times New Roman', Times, serif !important;
+}
+
+.certificate-content .table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11px;
+}
+
+.certificate-content .table th, 
+.certificate-content .table td {
+  border: 0.25px solid #222;
+  padding: 4px 6px;
+  vertical-align: top;
+  line-height: 1.2;
+}
+
+.certificate-content .no-border { 
+  border: none !important; 
+}
+
+.certificate-content .center { 
+  text-align: center; 
+}
+
+.certificate-content .right { 
+  text-align: right; 
+}
+
+.certificate-content .left { 
+  text-align: left; 
+}
+
+.certificate-content .small { 
+  font-size: 9px; 
+  color: #666; 
+}
+
+.certificate-content .big { 
+  font-size: 16px; 
+  font-weight: 700; 
+}
+
+.certificate-content .heading {
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+  padding: 4px;
+}
+
+.certificate-content .remarks {
+  height: 70px;
+  padding: 6px;
+  white-space: pre-wrap;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.certificate-content .sign-grid td {
+  height: 50px;
+}
+
+.certificate-content .table tr {
+  height: auto;
+  min-height: 20px;
+}
+
+.certificate-content .table .signature-cell {
+  height: 40px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+/* Estilos específicos para impressão */
 @media print {
   @page {
     size: A4 landscape;
-    margin: 10mm;
+    margin: 5mm;
   }
 
   body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+    margin: 0;
+    padding: 0;
+    zoom: 90%;
+    font-family: 'Times New Roman', Times, serif !important;
   }
-}
 
-@media print {
+  body * {
+    font-family: 'Times New Roman', Times, serif !important;
+  }
+
+  .certificate-content {
+    border: none;
+    padding: 0;
+    transform: scale(0.95);
+    transform-origin: top center;
+    max-width: 100%;
+  }
+
   .page-break {
-    page-break-before: always;
-    page-break-after: always;
+    page-break-before: avoid;
+    page-break-after: avoid;
+    page-break-inside: avoid;
+  }
+  
+  /* Evitar quebras em elementos críticos */
+  .certificate-content table {
+    page-break-inside: avoid;
+  }
+  
+  .certificate-content tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  .certificate-content td {
+    page-break-inside: avoid;
+  }
+
+  /* Garantir que todos os elementos dentro do certificado usem Times New Roman */
+  .certificate-content,
+  .certificate-content * {
+    font-family: 'Times New Roman', Times, serif !important;
   }
 }
 
-:root{
-  --border:#222;
-  --light:#f7f7f7;
-  --muted:#666;
-  font-family: 'Times New Roman', Times, serif !important;;
-}
-
-
-.form-wrap{
-  max-width: 1100px;
-  margin: 0 auto;
-  border: 2px solid #222;
-  padding: 14px;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  font-size: 13px;
-}
-
-.table th, .table td {
-  border: 0.25px solid #222;
-  padding: 6px 8px;
-  vertical-align: top;
-}
-
-.no-border { border: none !important; }
-.center { text-align: center; }
-.right { text-align: right; }
-.left { text-align: left; }
-.small { font-size: 11px; color: var(--muted); }
-.big { font-size: 18px; font-weight: 700; }
-.heading {
-  font-size: 20px;
-  font-weight: 800;
-  text-align: center;
-  padding: 6px;
-}
-
-/* Remarks box to mimic large text area */
-.remarks {
-  height: 90px;
-  padding: 8px;
-  white-space: pre-wrap;
-  font-size: 12px;
-}
-
-/* Signature area grid */
-.sign-grid td {
-  height: 60px;
-}
-
-.crossed {
-  position: relative;
-}
-.crossed::before,
-.crossed::after{
-  content: "";
-  position: absolute;
-  left: 0; right: 0; top: 0; bottom: 0;
-  border-top: none;
-  pointer-events: none;
-}
-/* optional diagonal line to mimic the big X on the form */
-.x-mark::before{
-  content: "";
-  position: absolute;
-  left: 0; top: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(0,0,0,0.06) 1px, transparent 1px);
-  background-size: 10px 10px;
-  pointer-events: none;
-  opacity: 0.35;
-}
-
-/* small checkboxes inline text */
-.inline-check { display:inline-flex; gap:6px; align-items:center; margin-right:12px; }
-
-/* footer note */
-.note { font-size:11px; color:var(--muted); padding:10px; }
-@media print {
-  body{ margin: 0; }
-  .form-wrap{ border: none; padding: 0; }
+/* Variáveis CSS */
+:root {
+  --border: #222;
+  --light: #f7f7f7;
+  --muted: #666;
 }
