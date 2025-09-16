@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Download, Printer, Plane } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getApiUrl } from "@/config/api";
@@ -77,7 +76,7 @@ const PDFPreview = () => {
         });
 
         if (!res.ok) throw new Error("Error fetching certificate");
-
+                
         const data = await res.json();
         setCertificate(data);
       } catch (error) {
@@ -245,8 +244,8 @@ const PDFPreview = () => {
                   <div className="text-left text-[10px] font-bold">
                     2.
                   </div>
-                  <div className="text-3xl font-bold">
-                    Authorized Release Certificate
+                  <div className="font-bold">
+                    AUTHORIZED RELEASE CERTIFICATE
                   </div>
                   <div className="text-sm">
                     FAA Form 8130-3, Airworthiness Approval Tag
@@ -335,7 +334,7 @@ const PDFPreview = () => {
                   <div className="text-[10px] font-bold mb-2">
                     12. Remarks:
                   </div>
-                  <div className="text-sm leading-relaxed uppercase h-40">
+                  <div className="text-sm leading-relaxed h-40">
                     {certificate.remarks}
                   </div>
                 </td>
