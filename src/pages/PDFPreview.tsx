@@ -104,52 +104,52 @@ const PDFPreview = () => {
     });
   };
 
-const handleDownloadPDF = () => {
-  const element = document.getElementById("pdf-content");
-  if (!element) {
-    toast({
-      title: "Error",
-      description: "PDF content not found",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  // Configurações otimizadas para caber em uma página
-  const opt = {
-    margin: 0.2, // Margem ainda menor
-    filename: `FAA_Form_8130-3_${certificate?.formNumber || 'certificate'}.pdf`,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { 
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      width: 1123, // Largura específica para A4 landscape
-      height: 794, // Altura específica para A4 landscape
-    },
-    jsPDF: { 
-      orientation: "landscape", 
-      unit: "mm", 
-      format: "a4",
-      compress: true
-    }
-  };
-
-  html2pdf()
-    .set(opt)
-    .from(element)
-    .save()
-    .then(() => {     
-    })
-    .catch((error) => {
-      console.error("PDF generation error:", error);
+  const handleDownloadPDF = () => {
+    const element = document.getElementById("pdf-content");
+    if (!element) {
       toast({
         title: "Error",
-        description: "Failed to generate PDF",
+        description: "PDF content not found",
         variant: "destructive",
       });
-    });
-};
+      return;
+    }
+
+    // Configurações otimizadas para caber em uma página
+    const opt = {
+      margin: 0.2, // Margem ainda menor
+      filename: `FAA_Form_8130-3_${certificate?.formNumber || 'certificate'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: 1123, // Largura específica para A4 landscape
+        height: 794, // Altura específica para A4 landscape
+      },
+      jsPDF: {
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+        compress: true
+      }
+    };
+
+    html2pdf()
+      .set(opt)
+      .from(element)
+      .save()
+      .then(() => {
+      })
+      .catch((error) => {
+        console.error("PDF generation error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to generate PDF",
+          variant: "destructive",
+        });
+      });
+  };
 
   const handlePrint = () => {
     window.print();
@@ -234,7 +234,7 @@ const handleDownloadPDF = () => {
               <tr>
                 <td colSpan={2} className="center">
                   <div className="text-[13px] font-bold mb-1">
-                    1. Approving Civil Aviation <br/>Authority / Country:
+                    1. Approving Civil Aviation <br />Authority / Country:
                   </div>
                   <div className="text-sm text-center">FAA/United States</div>
                 </td>
@@ -417,6 +417,8 @@ const handleDownloadPDF = () => {
                   <div className="text-[10px] font-bold mb-1">
                     14c. Approval/Certificate No.:
                   </div>
+                  <br />
+                  <div className="text-sm text-center">{certificate.approvalCertificateNo}</div>
                   <div className="py-5"></div>
                 </td>
               </tr>
@@ -438,12 +440,16 @@ const handleDownloadPDF = () => {
                   <div className="text-[10px] font-bold mb-1">
                     14d. Name (Typed or Printed):
                   </div>
+                  <br />
+                  <div className="text-sm">{certificate.name14}</div>
                   <div className="py-5"></div>
                 </td>
                 <td colSpan={2}>
                   <div className="text-[10px] font-bold mb-1">
                     14e. Date (dd/mmm/yyyy):
                   </div>
+                  <br />
+                  <div className="text-sm text-center">{certificate.date14}</div>
                   <div className="py-5"></div>
                 </td>
               </tr>

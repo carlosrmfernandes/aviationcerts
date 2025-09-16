@@ -68,13 +68,13 @@ const BatchPDFPreview = () => {
   useEffect(() => {
     const fetchCertificates = async () => {
       if (!ids) return;
-      
+
       const selectedIds = ids.split(',');
       setProgress({ current: 0, total: selectedIds.length });
-      
+
       const token = localStorage.getItem("access_token");
       const results: Certificate[] = [];
-      
+
       for (let i = 0; i < selectedIds.length; i++) {
         const id = selectedIds[i];
         try {
@@ -85,15 +85,15 @@ const BatchPDFPreview = () => {
               "Authorization": `Bearer ${token}`
             }
           });
-          
+
           if (!res.ok) throw new Error(`Error fetching certificate ${id}`);
-          
+
           const data = await res.json();
           results.push(data);
-          
+
           // Atualiza o progresso
           setProgress({ current: i + 1, total: selectedIds.length });
-          
+
           // Adiciona um delay entre as requisições para não sobrecarregar o servidor
           if (i < selectedIds.length - 1) {
             await delay(300); // 300ms de delay entre requisições
@@ -107,7 +107,7 @@ const BatchPDFPreview = () => {
           });
         }
       }
-      
+
       setCertificates(results);
       setLoading(false);
     };
@@ -139,16 +139,16 @@ const BatchPDFPreview = () => {
       margin: 0.2,
       filename: `FAA_Form_8130-3_${certificate.formNumber || 'certificate'}.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
+      html2canvas: {
         scale: 2,
         useCORS: true,
         logging: false,
         width: 1123,
         height: 794,
       },
-      jsPDF: { 
-        orientation: "landscape", 
-        unit: "mm", 
+      jsPDF: {
+        orientation: "landscape",
+        unit: "mm",
         format: "a4",
         compress: true
       }
@@ -184,7 +184,7 @@ const BatchPDFPreview = () => {
           <tr>
             <td colSpan={2} className="center">
               <div className="text-[13px] font-bold mb-1">
-                1. Approving Civil Aviation <br/>Authority / Country:
+                1. Approving Civil Aviation <br />Authority / Country:
               </div>
               <div className="text-sm text-center">FAA/United States</div>
             </td>
@@ -367,6 +367,8 @@ const BatchPDFPreview = () => {
               <div className="text-[10px] font-bold mb-1">
                 14c. Approval/Certificate No.:
               </div>
+              <br />
+              <div className="text-sm text-center">{certificate.approvalCertificateNo}</div>
               <div className="py-5"></div>
             </td>
           </tr>
@@ -388,12 +390,16 @@ const BatchPDFPreview = () => {
               <div className="text-[10px] font-bold mb-1">
                 14d. Name (Typed or Printed):
               </div>
+              <br />
+              <div className="text-sm">{certificate.name14}</div>
               <div className="py-5"></div>
             </td>
             <td colSpan={2}>
               <div className="text-[10px] font-bold mb-1">
                 14e. Date (dd/mmm/yyyy):
               </div>
+              <br />
+              <div className="text-sm text-center">{certificate.date14}</div>
               <div className="py-5"></div>
             </td>
           </tr>
@@ -438,7 +444,7 @@ const BatchPDFPreview = () => {
           </tr>
         </tbody>
       </table>
-      
+
       {/* Botão de download individual (visível apenas na visualização) */}
       {/* <div className="print:hidden mt-4 flex justify-end">
         <Button 
@@ -474,8 +480,8 @@ const BatchPDFPreview = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 onClick={() => navigate("/dashboard")}
                 className="mr-4"
               >
@@ -492,7 +498,7 @@ const BatchPDFPreview = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Button variant="outline" onClick={handlePrintAll}>
                 <Printer className="w-4 h-4 mr-2" />
@@ -508,7 +514,7 @@ const BatchPDFPreview = () => {
         {certificates.map((certificate) => (
           <CertificatePreview key={certificate.id} certificate={certificate} />
         ))}
-        
+
         {certificates.length === 0 && (
           <div className="text-center py-16">
             <p className="text-muted-foreground text-lg">No certificates found</p>
