@@ -9,3 +9,98 @@
     print-color-adjust: exact !important;
   }
 }
+
+@media print {
+  .page-break {
+    page-break-before: always;
+    page-break-after: always;
+  }
+}
+
+:root{
+  --border:#222;
+  --light:#f7f7f7;
+  --muted:#666;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+
+.form-wrap{
+  max-width: 1100px;
+  margin: 0 auto;
+  border: 2px solid #222;
+  padding: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.table th, .table td {
+  border: 2px solid #222;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.no-border { border: none !important; }
+.center { text-align: center; }
+.right { text-align: right; }
+.left { text-align: left; }
+.small { font-size: 11px; color: var(--muted); }
+.big { font-size: 18px; font-weight: 700; }
+.heading {
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  padding: 6px;
+}
+
+/* Remarks box to mimic large text area */
+.remarks {
+  height: 90px;
+  padding: 8px;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+/* Signature area grid */
+.sign-grid td {
+  height: 60px;
+}
+
+.crossed {
+  position: relative;
+}
+.crossed::before,
+.crossed::after{
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: 0;
+  border-top: none;
+  pointer-events: none;
+}
+/* optional diagonal line to mimic the big X on the form */
+.x-mark::before{
+  content: "";
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-size: 10px 10px;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* small checkboxes inline text */
+.inline-check { display:inline-flex; gap:6px; align-items:center; margin-right:12px; }
+
+/* footer note */
+.note { font-size:11px; color:var(--muted); padding:10px; }
+@media print {
+  body{ margin: 0; }
+  .form-wrap{ border: none; padding: 0; }
+}

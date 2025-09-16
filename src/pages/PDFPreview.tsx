@@ -107,22 +107,51 @@ const PDFPreview = () => {
 
   const handleDownloadPDF = () => {
     const element = document.getElementById("pdf-content");
-    if (!element) return;
+    if (!element) {
+      toast({
+        title: "Error",
+        description: "PDF content not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Configurações otimizadas para o html2pdf
+    const opt = {
+      margin: 0.3,
+      filename: `FAA_Form_8130-3_${certificate?.formNumber || 'certificate'}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2,
+        useCORS: true,
+        logging: false
+      },
+      jsPDF: { 
+        orientation: "landscape", 
+        unit: "in", 
+        format: "a4",
+        compress: true
+      }
+    };
 
     html2pdf()
+      .set(opt)
       .from(element)
-      .set({
-        margin: 0.3,
-        filename: `FAA_Form_8130-3_${certificate?.formNumber}.pdf`,
-        html2canvas: { scale: 2 },
-        jsPDF: { orientation: "landscape", unit: "in", format: "a4" },
+      .save()
+      .then(() => {
+        toast({
+          title: "PDF Generated!",
+          description: "Certificate was successfully generated",
+        });
       })
-      .save();
-
-    toast({
-      title: "PDF Generated!",
-      description: "Certificate was successfully generated",
-    });
+      .catch((error) => {
+        console.error("PDF generation error:", error);
+        toast({
+          title: "Error",
+          description: "Failed to generate PDF",
+          variant: "destructive",
+        });
+      });
   };
 
   const handlePrint = () => {
@@ -195,49 +224,47 @@ const PDFPreview = () => {
         </div>
       </header>
 
-      {/* PDF Preview */}
+      {/* PDF Content */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 print:p-0 print:max-w-full">
-        <Card className="shadow-lg print:shadow-none print:border-0">
-          <CardContent
-            id="pdf-content"
-            className="p-8 print:p-6 border border-black"
-          >
-            {/* Header Section */}
-            <div className="border-2 border-black mb-4">
-              <div className="grid grid-cols-3 border-b border-black">
-                {/* Column 1 */}
-                <div className="border-r border-black p-2">
-                  <div className="text-[10px] font-bold mb-1 uppercase">
-                    1. Approving Civil Aviation Authority/Country:
+        <div id="pdf-content">
+          <table className="table table-fixed w-full border-collapse">
+            <thead>
+              <tr>
+                <th colSpan={8} className="hidden"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td colSpan={2} className="center">
+                  <div className="text-[13px] font-bold mb-1">
+                    1. Approving Civil Aviation <br/>Authority / Country:
                   </div>
-                  <div className="text-sm">
-                    {certificate.approvingAuthority}/{certificate.approvingCountry}
+                  <div className="text-sm text-center">FAA/United States</div>
+                </td>
+                <td colSpan={4} className="heading">
+                  <div className="text-left text-[10px] font-bold">
+                    2.
                   </div>
-                </div>
-
-                {/* Column 2 - Title */}
-                <div className="border-r border-black p-2 text-center">
-                  <div className="text-lg font-bold uppercase">
+                  <div className="text-3xl font-bold">
                     Authorized Release Certificate
                   </div>
                   <div className="text-sm">
                     FAA Form 8130-3, Airworthiness Approval Tag
                   </div>
-                </div>
-
-                {/* Column 3 */}
-                <div className="p-2">
-                  <div className="text-[10px] font-bold mb-1 uppercase">
-                    3. Form Tracking Number:
+                </td>
+                <td colSpan={2}>
+                  <div className="p-1">
+                    <div className="text-[13px] font-bold mb-1">
+                      3. Form Tracking Number:
+                    </div>
+                    <div className="text-sm text-center">{certificate.formTrackingNumber}</div>
                   </div>
-                  <div className="text-sm">{certificate.formTrackingNumber}</div>
-                </div>
-              </div>
+                </td>
+              </tr>
 
-              {/* Organization and Work Order */}
-              <div className="grid grid-cols-2 border-b border-black">
-                <div className="border-r border-black p-2">
-                  <div className="text-[10px] font-bold mb-1 uppercase">
+              <tr>
+                <td colSpan={6}>
+                  <div className="text-[10px] font-bold mb-1">
                     4. Organization Name and Address:
                   </div>
                   <div className="text-sm">
@@ -249,77 +276,74 @@ const PDFPreview = () => {
                       </>
                     )}
                   </div>
-                </div>
-                <div className="p-2">
-                  <div className="text-[10px] font-bold mb-1 uppercase">
-                    5. Work Order/Contract/Invoice Number:
+                </td>
+                <td colSpan={2}>
+                  <div className="px-1">
+                    <div className="text-[10px] font-bold mb-1">
+                      5. Work Order/Contract/Invoice Number:
+                    </div>
+                    <div className="text-sm">{certificate.workOrderContractInvoiceNumber}</div>
                   </div>
-                  <div className="text-sm">{certificate.workOrderContractInvoiceNumber}</div>
-                </div>
-              </div>
+                </td>
+              </tr>
+              <tr>
+                <th className="left" colSpan={1}>6. Item</th>
+                <th className="left" colSpan={2}>7. Description</th>
+                <th className="left" colSpan={2}>8. Part Number</th>
+                <th className="left" colSpan={1}>9. Quantity</th>
+                <th className="left" colSpan={1}>10. Serial Number</th>
+                <th className="left" colSpan={1}>11. Status/Work</th>
+              </tr>
 
-              {/* Item Details Table */}
-              <div className="border-b border-black">
-                <div className="grid grid-cols-12 border-b border-black bg-gray-100">
-                  <div className="col-span-1 border-r border-black p-1 text-[10px] font-bold text-center">
-                    6. Item
-                  </div>
-                  <div className="col-span-4 border-r border-black p-1 text-[10px] font-bold text-center">
-                    7. Description
-                  </div>
-                  <div className="col-span-2 border-r border-black p-1 text-[10px] font-bold text-center">
-                    8. Part Number
-                  </div>
-                  <div className="col-span-1 border-r border-black p-1 text-[10px] font-bold text-center">
-                    9. Quantity
-                  </div>
-                  <div className="col-span-2 border-r border-black p-1 text-[10px] font-bold text-center">
-                    10. Serial Number
-                  </div>
-                  <div className="col-span-2 p-1 text-[10px] font-bold text-center">
-                    11. Status/Work
-                  </div>
-                </div>
-
-                {certificate.items.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-12 border-b border-black last:border-b-0">
-                    <div className="col-span-1 border-r border-black p-2 text-center text-sm">
+              {certificate.items.map((item, index) => (
+                <tr key={item.id || index}>
+                  <td className="center" colSpan={1}>
+                    <div className="p-2 text-center text-sm">
                       {item.item}
                     </div>
-                    <div className="col-span-4 border-r border-black p-2 text-sm">
+                  </td>
+                  <td colSpan={2}>
+                    <div className="p-2 text-center text-sm">
                       {item.description}
                     </div>
-                    <div className="col-span-2 border-r border-black p-2 text-sm">
+                  </td>
+                  <td className="center" colSpan={2}>
+                    <div className="p-2 text-center text-sm">
                       {item.partNumber}
                     </div>
-                    <div className="col-span-1 border-r border-black p-2 text-center text-sm">
+                  </td>
+                  <td className="center" colSpan={1}>
+                    <div className="p-2 text-center text-sm">
                       {item.quantity}
                     </div>
-                    <div className="col-span-2 border-r border-black p-2 text-sm">
-                      {item.serialNumber}
+                  </td>
+                  <td className="center" colSpan={1}>
+                    <div className="p-2 text-center text-sm">
+                      {item.serialNumber} {/* Corrigido: estava item.quantity */}
                     </div>
-                    <div className="col-span-2 p-2 text-sm">
+                  </td>
+                  <td className="center" colSpan={1}>
+                    <div className="p-2 text-center text-sm">
                       {item.status}
                     </div>
+                  </td>
+                </tr>
+              ))}
+
+              <tr>
+                <td colSpan={8} className="remarks">
+                  <div className="text-[10px] font-bold mb-2">
+                    12. Remarks:
                   </div>
-                ))}
-              </div>
+                  <div className="text-sm leading-relaxed uppercase h-40">
+                    {certificate.remarks}
+                  </div>
+                </td>
+              </tr>
 
-              {/* Remarks */}
-              <div className="border-b border-black p-2">
-                <div className="text-[10px] font-bold mb-2 uppercase">
-                  12. Remarks:
-                </div>
-                <div className="text-sm leading-relaxed">
-                  {certificate.remarks}
-                </div>
-              </div>
-
-              {/* Certifications */}
-              <div className="grid grid-cols-2 border-b border-black">
-                {/* Left Column - 13a */}
-                <div className="border-r border-black p-2">
-                  <div className="text-[10px] font-bold mb-2 uppercase">
+              <tr>
+                <td colSpan={4} style={{ padding: "8px" }}>
+                  <div className="text-[10px] font-bold mb-2">
                     13a. Certifies the items identified above were manufactured in conformity to:
                   </div>
                   <div className="flex items-center mb-1">
@@ -338,146 +362,136 @@ const PDFPreview = () => {
                       Non-approved design data specified in Block 12.
                     </span>
                   </div>
+                </td>
 
-                  {/* 13b, 13c, 13d, 13e */}
-                  <div className="mt-4 grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        13b. Authorized Signature:
+                <td colSpan={4} style={{ padding: "8px" }}>
+                  <div className="flex gap-4">
+                    <div className="text-[10px] font-bold mb-2">14a.</div>
+                    <div className="flex gap-4 content-between">
+                      <div>
+                        <div className="flex items-center mb-1">
+                          <div className="w-4 h-4 border border-black mr-2 flex items-center justify-center">
+                            {certificate.returnToService && "✓"}
+                          </div>
+                          <span className="text-[10px]">
+                            14 CFR 43.9 Return to Service
+                          </span>
+                        </div>
                       </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.authorizedSignature13}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        13c. Approval/Authorization No.:
-                      </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.approvalAuthorizationNo}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        13d. Name (Typed or Printed):
-                      </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.name13}
+                      <div className="flex items-center mb-2">
+                        <div className="w-4 h-4 border border-black mr-2 flex items-center justify-center">
+                          {certificate.otherRegulation && "✓"}
+                        </div>
+                        <span className="text-[10px]">
+                          Other regulation specified in Block 12
+                        </span>
                       </div>
                     </div>
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        13e. Date (dd/mmm/yyyy):
-                      </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.date13}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column - 14a */}
-                <div className="p-2">
-                  <div className="text-[10px] font-bold mb-2 uppercase">14a.</div>
-                  <div className="flex items-center mb-1">
-                    <div className="w-4 h-4 border border-black mr-2 flex items-center justify-center">
-                      {certificate.returnToService && "✓"}
-                    </div>
-                    <span className="text-[10px]">
-                      14 CFR 43.9 Return to Service
-                    </span>
-                  </div>
-                  <div className="flex items-center mb-2">
-                    <div className="w-4 h-4 border border-black mr-2 flex items-center justify-center">
-                      {certificate.otherRegulation && "✓"}
-                    </div>
-                    <span className="text-[10px]">
-                      Other regulation specified in Block 12
-                    </span>
                   </div>
                   <div className="text-[10px] leading-tight mb-4">
-                    Certifies that unless otherwise specified in Block 12, the work identified 
-                    in Block 11 and described in Block 12 was accomplished in accordance with 
-                    Title 14, Code of Federal Regulations, part 43 and in respect to that work, 
+                    Certifies that unless otherwise specified in Block 12, the work identified
+                    in Block 11 and described in Block 12 was accomplished in accordance with
+                    Title 14, Code of Federal Regulations, part 43 and in respect to that work,
                     the items are approved for return to service.
                   </div>
+                </td>
+              </tr>
 
-                  {/* 14b, 14c, 14d, 14e */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        14b. Authorized Signature:
-                      </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.authorizedSignature14}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        14c. Approval/Certificate No.:
-                      </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.approvalCertificateNo}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        14d. Name (Typed or Printed):
-                      </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.name14}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold mb-1 uppercase">
-                        14e. Date (dd/mmm/yyyy):
-                      </div>
-                      <div className="h-6 border-b border-black"></div>
-                      <div className="text-[10px] text-center mt-1">
-                        {certificate.date14}
-                      </div>
-                    </div>
+              <tr>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    13b. Authorized Signature:
                   </div>
-                </div>
-              </div>
+                  <div className="py-5"></div>
+                </td>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    13c. Approval/Authorization No.:
+                  </div>
+                  <div className="py-5"></div>
+                </td>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    14b. Authorized Signature:
+                  </div>
+                  <div className="py-5"></div>
+                </td>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    14c. Approval/Certificate No.:
+                  </div>
+                  <div className="py-5"></div>
+                </td>
+              </tr>
 
-              {/* Footer */}
-              <div className="border-t border-black p-2">
-                <div className="text-[10px] font-bold mb-2 uppercase">
-                  User/Installer Responsibilities
-                </div>
-                <div className="text-[10px] leading-relaxed">
-                  It is important to understand that the existence of this
-                  document alone does not automatically constitute authority to
-                  install the aircraft engine/propeller/article. Where the
-                  user/installer performs work in accordance with the national
-                  regulations of an airworthiness authority different than the
-                  airworthiness authority of the country specified in Block 1,
-                  it is essential that the user/installer ensures that his/her
-                  airworthiness authority accepts aircraft
-                  engine(s)/propeller(s)/article(s) from the airworthiness
-                  authority of the country specified in Block 1. <br />
-                  <br />
-                  Statements in Blocks 13a and 14a do not constitute
-                  installation certification. In all cases, aircraft maintenance
-                  records must contain an installation certification issued in
-                  accordance with the national regulations by the user/installer
-                  before the aircraft may be flown.
-                </div>
-                <div className="text-right text-[10px] mt-4">
-                  FAA Form 8130-3 (02-14) NSN: 0052-00-012-9005
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              <tr>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    13d. Name (Typed or Printed):
+                  </div>
+                  <div className="py-5"></div>
+                </td>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    13e. Date (dd/mmm/yyyy):
+                  </div>
+                  <div className="py-5"></div>
+                </td>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    14d. Name (Typed or Printed):
+                  </div>
+                  <div className="py-5"></div>
+                </td>
+                <td colSpan={2}>
+                  <div className="text-[10px] font-bold mb-1">
+                    14e. Date (dd/mmm/yyyy):
+                  </div>
+                  <div className="py-5"></div>
+                </td>
+              </tr>
+
+              <tr>
+                <td colSpan={8} className="center">
+                  <strong>User/Installer Responsibilities</strong>
+                </td>
+              </tr>
+
+              <tr>
+                <td colSpan={8}>
+                  <div className="note font-bold">
+                    It is important to understand that the existence of this
+                    document alone does not automatically constitute authority to
+                    install the aircraft engine/propeller/article.  <br />
+                    <br />
+                    Where the user/installer performs work in accordance with the national
+                    regulations of an airworthiness authority different than the
+                    airworthiness authority of the country specified in Block 1,
+                    it is essential that the user/installer ensures that his/her
+                    airworthiness authority accepts aircraft
+                    engine(s)/propeller(s)/article(s) from the airworthiness
+                    authority of the country specified in Block 1. <br />
+                    <br />
+                    Statements in Blocks 13a and 14a do not constitute
+                    installation certification. In all cases, aircraft maintenance
+                    records must contain an installation certification issued in
+                    accordance with the national regulations by the user/installer
+                    before the aircraft may be flown.
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td colSpan={8} className="no-border">
+                  <div className="w-100 flex justify-between">
+                    <span className="small left">FAA Form 8130-3 (02-14)</span>
+                    <span className="small right">NSN: 0052-00-012-9005</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </main>
     </div>
   );
