@@ -361,15 +361,60 @@ const Dashboard = () => {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Items</CardTitle>
+              <CardTitle className="text-sm font-medium">Serviceable Items</CardTitle>
               <div className="w-3 h-3 bg-warning rounded-full"></div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
                 {certificates.reduce((total, cert) =>
                   total + cert.items.filter(item =>
-                    item.status.toUpperCase() === "PENDING" ||
-                    item.status.toUpperCase() === "PENDENTE").length, 0)}
+                    item.status.toUpperCase() === "SERVICEABLE" ||
+                    item.status.toUpperCase() === "SERVICEABLE").length, 0)}
+              </div>
+            </CardContent>
+          </Card>
+
+           <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">As Removed Items</CardTitle>
+              <div className="w-3 h-3 bg-warning rounded-full"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {certificates.reduce((total, cert) =>
+                  total + cert.items.filter(item =>
+                    item.status.toUpperCase() === "AS REMOVED" ||
+                    item.status.toUpperCase() === "AS REMOVED").length, 0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Tested Items</CardTitle>
+              <div className="w-3 h-3 bg-warning rounded-full"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {certificates.reduce((total, cert) =>
+                  total + cert.items.filter(item =>
+                    item.status.toUpperCase() === "TESTED" ||
+                    item.status.toUpperCase() === "TESTED").length, 0)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Repairable Items</CardTitle>
+              <div className="w-3 h-3 bg-warning rounded-full"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {certificates.reduce((total, cert) =>
+                  total + cert.items.filter(item =>
+                    item.status.toUpperCase() === "REPAIRABLE" ||
+                    item.status.toUpperCase() === "REPAIRABLE").length, 0)}
               </div>
             </CardContent>
           </Card>

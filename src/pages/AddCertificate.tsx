@@ -324,11 +324,11 @@ const AddCertificate = () => {
                                 <SelectValue placeholder="Select status" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="PENDING">PENDING</SelectItem>
                                 <SelectItem value="INSPECTED">INSPECTED</SelectItem>
-                                <SelectItem value="REJECTED">REJECTED</SelectItem>
-                                <SelectItem value="OVERHAULED">OVERHAULED</SelectItem>
-                                <SelectItem value="REPAIRED">REPAIRED</SelectItem>
+                                <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
+                                <SelectItem value="AS REMOVED">AS REMOVED</SelectItem>
+                                <SelectItem value="TESTED">TESTED</SelectItem>
+                                <SelectItem value="REPAIRABLE">REPAIRABLE</SelectItem>
                               </SelectContent>
                             </Select>
                           </td>
