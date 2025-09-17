@@ -380,6 +380,7 @@ const AddCertificate = () => {
                   
                   <div className="flex items-center space-x-2">
                     <Checkbox
+                      className="disabled-field"
                       id="conformityApprovedDesign"
                       checked={formData.conformityApprovedDesign}
                       onCheckedChange={(checked) => 
@@ -396,6 +397,7 @@ const AddCertificate = () => {
                   
                   <div className="flex items-center space-x-2">
                     <Checkbox
+                      className="disabled-field"
                       id="conformityNonApprovedDesign"
                       checked={formData.conformityNonApprovedDesign}
                       onCheckedChange={(checked) => 
@@ -414,6 +416,7 @@ const AddCertificate = () => {
                     <div className="space-y-2">
                       <Label htmlFor="authorizedSignature13">13b. Authorized Signature</Label>
                       <Input
+                        className="disabled-field"
                         id="authorizedSignature13"
                         value={formData.authorizedSignature13}
                         onChange={(e) => handleInputChange("authorizedSignature13", e.target.value)}
@@ -423,6 +426,7 @@ const AddCertificate = () => {
                     <div className="space-y-2">
                       <Label htmlFor="approvalAuthorizationNo">13c. Approval/Authorization No.</Label>
                       <Input
+                        className="disabled-field"
                         id="approvalAuthorizationNo"
                         value={formData.approvalAuthorizationNo}
                         onChange={(e) => handleInputChange("approvalAuthorizationNo", e.target.value)}
@@ -434,6 +438,7 @@ const AddCertificate = () => {
                     <div className="space-y-2">
                       <Label htmlFor="name13">13d. Name (Typed or Printed)</Label>
                       <Input
+                        className="disabled-field"
                         id="name13"
                         value={formData.name13}
                         onChange={(e) => handleInputChange("name13", e.target.value)}
@@ -443,6 +448,7 @@ const AddCertificate = () => {
                     <div className="space-y-2">
                       <Label htmlFor="date13">13e. Date (dd/mmm/yyyy)</Label>
                       <Input
+                        className="disabled-field"                        
                         id="date13"
                         value={formData.date13}
                         onChange={(e) => handleInputChange("date13", e.target.value)}
