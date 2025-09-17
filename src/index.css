@@ -101,7 +101,7 @@ All colors MUST be HSL.
 @layer base {
 
 .disabled-field {
-  background-color: grey !important;
+  background-color: #E3E3E3 !important;
   pointer-events: none;
   }
 

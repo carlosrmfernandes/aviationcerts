@@ -339,7 +339,8 @@ const PDFPreview = () => {
               </tr>
 
               <tr>
-                <td colSpan={4} style={{ padding: "8px" }}>
+                <td colSpan={4} style={{ padding: "8px", position: "relative" }} className="disabled-field" /*className="signature-box"*/>
+                  <div className="cross-overlay"></div>
                   <div className="text-[10px] font-bold mb-2">
                     13a. Certifies the items identified above were manufactured in conformity to:
                   </div>
@@ -395,13 +396,13 @@ const PDFPreview = () => {
               </tr>
 
               <tr>
-                <td colSpan={2}>
+                <td colSpan={2} className="disabled-field">
                   <div className="text-[10px] font-bold mb-1">
                     13b. Authorized Signature:
                   </div>
                   <div className="py-5"></div>
                 </td>
-                <td colSpan={2}>
+                <td colSpan={2} className="disabled-field">
                   <div className="text-[10px] font-bold mb-1">
                     13c. Approval/Authorization No.:
                   </div>
@@ -424,13 +425,13 @@ const PDFPreview = () => {
               </tr>
 
               <tr>
-                <td colSpan={2}>
+                <td colSpan={2} className="disabled-field">
                   <div className="text-[10px] font-bold mb-1">
                     13d. Name (Typed or Printed):
                   </div>
                   <div className="py-5"></div>
                 </td>
-                <td colSpan={2}>
+                <td colSpan={2} className="disabled-field">
                   <div className="text-[10px] font-bold mb-1">
                     13e. Date (dd/mmm/yyyy):
                   </div>
