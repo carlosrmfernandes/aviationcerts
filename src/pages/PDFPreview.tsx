@@ -339,7 +339,7 @@ const PDFPreview = () => {
               </tr>
 
               <tr>
-                <td colSpan={4} style={{ padding: "8px", position: "relative" }} className="disabled-field" /*className="signature-box"*/>
+                <td colSpan={4} /*style={{ padding: "8px", position: "relative" }}*/ className="disabled-field" /*className="signature-box"*/>
                   <div className="cross-overlay"></div>
                   <div className="text-[10px] font-bold mb-2">
                     13a. Certifies the items identified above were manufactured in conformity to:
