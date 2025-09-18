@@ -47,8 +47,9 @@ const EditCertificate = () => {
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
-  
+  const [toggleValue, setToggleValue] = useState(true);
+  const [fetching, setFetching] = useState(false);
+
   const [formData, setFormData] = useState<CertificateForm>({
     approvingAuthority: "FAA",
     approvingCountry: "United States",
@@ -79,14 +80,30 @@ const EditCertificate = () => {
     date14: ""
   });
 
-  // Fetch certificate data on component mount
   useEffect(() => {
-    const fetchCertificate = async () => {
+    const fetchData = async () => {
       if (!id) return;
-      
+
+      setFetching(true);
       const token = localStorage.getItem("access_token");
+
       try {
-        const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
+        // Primeiro busca o toggle state
+        const toggleRes = await fetch(getApiUrl("/api/toggle-state"), {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (toggleRes.ok) {
+          const toggleData = await toggleRes.json();
+          setToggleValue(toggleData.enabled);
+        }
+
+        // Depois busca os dados do certificado
+        const certificateRes = await fetch(getApiUrl(`/api/certificates/${id}`), {
           method: "GET",
           headers: {
             "Accept": "application/json",
@@ -94,17 +111,18 @@ const EditCertificate = () => {
           },
         });
 
-        if (!res.ok) {
+        if (!certificateRes.ok) {
           throw new Error("Error fetching certificate");
         }
 
-        const data = await res.json();
-        setFormData(data);
+        const certificateData = await certificateRes.json();
+        setFormData(certificateData);
+
       } catch (error: any) {
-        console.error("Error fetching certificate:", error);
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
-          description: error.message || "Could not fetch certificate",
+          description: error.message || "Could not fetch data",
           variant: "destructive",
         });
       } finally {
@@ -112,8 +130,9 @@ const EditCertificate = () => {
       }
     };
 
-    fetchCertificate();
+    fetchData();
   }, [id, toast]);
+
 
   const handleInputChange = (field: keyof CertificateForm, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -144,16 +163,16 @@ const EditCertificate = () => {
 
   const removeItem = (index: number) => {
     if (formData.items.length <= 1) return;
-    
+
     const updatedItems = [...formData.items];
     updatedItems.splice(index, 1);
-    
+
     // Renumber items
     const renumberedItems = updatedItems.map((item, idx) => ({
       ...item,
       item: `${idx + 1}`
     }));
-    
+
     setFormData(prev => ({ ...prev, items: renumberedItems }));
   };
 
@@ -212,8 +231,8 @@ const EditCertificate = () => {
       <header className="bg-white border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => navigate("/dashboard")}
               className="mr-4"
             >
@@ -255,7 +274,7 @@ const EditCertificate = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="approvingCountry">Country</Label>
                   <Input
@@ -300,7 +319,7 @@ const EditCertificate = () => {
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="workOrderContractInvoiceNumber">5. Work Order/Contract/Invoice Number:</Label>
                   <Input
@@ -314,7 +333,7 @@ const EditCertificate = () => {
               {/* Section 6-11: Items Table */}
               <div className="p-4 border rounded-md">
                 <Label className="mb-4 block">Items (6-11)</Label>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
@@ -366,14 +385,14 @@ const EditCertificate = () => {
                             />
                           </td>
                           <td className="p-2">
-                            <Select 
-                              value={item.status} 
+                            <Select
+                              value={item.status}
                               onValueChange={(value) => handleItemChange(index, "status", value)}
                             >
                               <SelectTrigger className="w-32">
                                 <SelectValue placeholder="Select status" />
                               </SelectTrigger>
-                               <SelectContent>
+                              <SelectContent>
                                 <SelectItem value="INSPECTED">INSPECTED</SelectItem>
                                 <SelectItem value="SERVICEABLE">SERVICEABLE</SelectItem>
                                 <SelectItem value="AS REMOVED">AS REMOVED</SelectItem>
@@ -398,7 +417,7 @@ const EditCertificate = () => {
                     </tbody>
                   </table>
                 </div>
-                
+
                 <Button
                   type="button"
                   variant="outline"
@@ -426,79 +445,94 @@ const EditCertificate = () => {
               {/* Section 13: Conformity */}
               <div className="p-4 border rounded-md">
                 <div className="space-y-4">
-                  <Label>13a. Certifies the items identified above were manufactured in conformity to:</Label>
-                  
+                  <Label className={!toggleValue ? "disabled-label" : ""}>13a. Certifies the items identified above were manufactured in conformity to:</Label>
+
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      className="disabled-field"
+                      className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-field" : ""}
+                      disabled={!toggleValue}
                       id="conformityApprovedDesign"
                       checked={formData.conformityApprovedDesign}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleInputChange("conformityApprovedDesign", checked === true)
                       }
                     />
                     <label
                       htmlFor="conformityApprovedDesign"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className={!toggleValue ? "disabled-label" : ""}
                     >
                       Approved design data and are in a condition for safe operation.
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      className="disabled-field"
+                      className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-field" : ""}
+                      disabled={!toggleValue}
                       id="conformityNonApprovedDesign"
                       checked={formData.conformityNonApprovedDesign}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleInputChange("conformityNonApprovedDesign", checked === true)
                       }
                     />
                     <label
                       htmlFor="conformityNonApprovedDesign"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      className={!toggleValue ? "disabled-label" : ""}
                     >
                       Non-approved design data specified in Block 12.
                     </label>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     <div className="space-y-2">
-                      <Label htmlFor="authorizedSignature13">13b. Authorized Signature</Label>
-                      <Input                        
+                      <Label htmlFor="authorizedSignature13"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-label" : ""}
+                      >13b. Authorized Signature</Label>
+                      <Input
                         id="authorizedSignature13"
                         value={formData.authorizedSignature13}
                         onChange={(e) => handleInputChange("authorizedSignature13", e.target.value)}
-                        className="disabled-field"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-field" : ""}
+                        disabled={!toggleValue}
+
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <Label htmlFor="approvalAuthorizationNo">13c. Approval/Authorization No.</Label>
+                      <Label htmlFor="approvalAuthorizationNo"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-label" : ""}
+                      >13c. Approval/Authorization No.</Label>
                       <Input
-                        className="disabled-field"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-field" : ""}
+                        disabled={!toggleValue}
                         id="approvalAuthorizationNo"
                         value={formData.approvalAuthorizationNo}
                         onChange={(e) => handleInputChange("approvalAuthorizationNo", e.target.value)}
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="name13">13d. Name (Typed or Printed)</Label>
+                      <Label htmlFor="name13"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-label" : ""}
+                      >13d. Name (Typed or Printed)</Label>
                       <Input
-                        className="disabled-field"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-field" : ""}
+                        disabled={!toggleValue}
                         id="name13"
                         value={formData.name13}
                         onChange={(e) => handleInputChange("name13", e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
-                      <Label htmlFor="date13">13e. Date (dd/mmm/yyyy)</Label>
+                      <Label htmlFor="date13"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-label" : ""}
+                      >13e. Date (dd/mmm/yyyy)</Label>
                       <Input
-                        className="disabled-field"
+                        className={!toggleValue ? "opacity-50 cursor-not-allowed disabled-field" : ""}
+                        disabled={!toggleValue}
                         id="date13"
                         value={formData.date13}
                         onChange={(e) => handleInputChange("date13", e.target.value)}
@@ -513,12 +547,12 @@ const EditCertificate = () => {
               <div className="p-4 border rounded-md">
                 <div className="space-y-4">
                   <Label>14a.</Label>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="returnToService"
                       checked={formData.returnToService}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleInputChange("returnToService", checked === true)
                       }
                     />
@@ -529,12 +563,12 @@ const EditCertificate = () => {
                       14 CFR 43.9 Return to Service
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="otherRegulation"
                       checked={formData.otherRegulation}
-                      onCheckedChange={(checked) => 
+                      onCheckedChange={(checked) =>
                         handleInputChange("otherRegulation", checked === true)
                       }
                     />
@@ -545,11 +579,11 @@ const EditCertificate = () => {
                       Other regulation specified in Block 12
                     </label>
                   </div>
-                  
+
                   <p className="text-sm text-muted-foreground mt-2">
                     Certifies that unless otherwise specified in Block 12, the work identified in Block 11 and described in Block 12 was accomplished in accordance with Title 14, Code of Federal Regulations, part 43 and in respect to that work, the items are approved for return to service.
                   </p>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     <div className="space-y-2">
                       <Label htmlFor="authorizedSignature14">14b. Authorized Signature</Label>
@@ -559,7 +593,7 @@ const EditCertificate = () => {
                         onChange={(e) => handleInputChange("authorizedSignature14", e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="approvalCertificateNo">14c. Approval/Certificate No.</Label>
                       <Input
@@ -569,7 +603,7 @@ const EditCertificate = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="name14">14d. Name (Typed or Printed)</Label>
@@ -579,7 +613,7 @@ const EditCertificate = () => {
                         onChange={(e) => handleInputChange("name14", e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="date14">14e. Date (dd/mmm/yyyy)</Label>
                       <Input

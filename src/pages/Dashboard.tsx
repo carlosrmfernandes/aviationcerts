@@ -33,6 +33,8 @@ import {
   Files
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface CertificateItem {
   id: string;
@@ -72,6 +74,64 @@ const Dashboard = () => {
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [selectedCertificates, setSelectedCertificates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [toggleValue, setToggleValue] = useState(false);
+
+  const fetchToggleState = async () => {
+    const token = localStorage.getItem("access_token");
+    try {
+      const res = await fetch(getApiUrl("/api/toggle-state"), {
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        }
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setToggleValue(data.enabled);
+      }
+    } catch (error) {
+      console.error("Error fetching toggle state:", error);
+      throw error;
+    }
+  };
+
+  const updateToggleState = async (newValue: boolean) => {
+    setLoading(true);
+    const token = localStorage.getItem("access_token");
+    try {
+      const res = await fetch(getApiUrl("/api/toggle-state"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ enabled: newValue })
+      });
+
+      if (res.ok) {
+        setToggleValue(newValue);
+        toast({
+          title: "Success",
+          description: `Toggle ${newValue ? "enabled" : "disabled"} successfully`,
+        });
+      } else {
+        throw new Error("Error updating toggle state");
+      }
+    } catch (error) {
+      console.error("Error updating toggle state:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update toggle state",
+        variant: "destructive",
+      });
+      setToggleValue(!newValue);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchCertificates = async () => {
     const token = localStorage.getItem("access_token");
@@ -95,13 +155,24 @@ const Dashboard = () => {
         description: "Failed to load certificates",
         variant: "destructive",
       });
-    } finally {
-        setLoading(false);
-      }
+      throw error;
+    }
   };
 
   useEffect(() => {
-    fetchCertificates();
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        await fetchCertificates();
+        await fetchToggleState();
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleLogout = async () => {
@@ -199,7 +270,7 @@ const Dashboard = () => {
   const filteredCertificates = certificates.filter(cert =>
     cert.organizationName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cert.formTrackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.workOrderContractInvoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (cert.workOrderContractInvoiceNumber && cert.workOrderContractInvoiceNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
     cert.items.some(item =>
       item.partNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.serialNumber || "").toLowerCase().includes(searchTerm.toLowerCase())
@@ -220,12 +291,12 @@ const Dashboard = () => {
     }
   };
 
-    if (loading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-muted/30 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading certificate...</p>
+          <p className="text-muted-foreground">Loading certificates...</p>
         </div>
       </div>
     );
@@ -253,7 +324,6 @@ const Dashboard = () => {
     return "MIXED";
   };
 
-  // Função para formatar a data
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -307,6 +377,18 @@ const Dashboard = () => {
           <p className="text-muted-foreground">
             Manage your authorized release certificates
           </p>
+        </div>
+
+        {/* Toggle Switch */}
+        <div className="flex items-center space-x-2 mb-6"  style={{ justifyContent: "flex-end" }}>
+          <Switch
+            id="toggle-mode"
+            checked={toggleValue}
+            onCheckedChange={updateToggleState}
+          />
+          <Label htmlFor="toggle-mode">
+            Active: 13a–13e
+          </Label>
         </div>
 
         {/* Actions Bar */}
@@ -368,13 +450,12 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">
                 {certificates.reduce((total, cert) =>
                   total + cert.items.filter(item =>
-                    item.status.toUpperCase() === "SERVICEABLE" ||
                     item.status.toUpperCase() === "SERVICEABLE").length, 0)}
               </div>
             </CardContent>
           </Card>
 
-           <Card>
+          <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">As Removed Items</CardTitle>
               <div className="w-3 h-3 bg-warning rounded-full"></div>
@@ -383,7 +464,6 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">
                 {certificates.reduce((total, cert) =>
                   total + cert.items.filter(item =>
-                    item.status.toUpperCase() === "AS REMOVED" ||
                     item.status.toUpperCase() === "AS REMOVED").length, 0)}
               </div>
             </CardContent>
@@ -398,7 +478,6 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">
                 {certificates.reduce((total, cert) =>
                   total + cert.items.filter(item =>
-                    item.status.toUpperCase() === "TESTED" ||
                     item.status.toUpperCase() === "TESTED").length, 0)}
               </div>
             </CardContent>
@@ -413,7 +492,6 @@ const Dashboard = () => {
               <div className="text-2xl font-bold">
                 {certificates.reduce((total, cert) =>
                   total + cert.items.filter(item =>
-                    item.status.toUpperCase() === "REPAIRABLE" ||
                     item.status.toUpperCase() === "REPAIRABLE").length, 0)}
               </div>
             </CardContent>
@@ -454,7 +532,6 @@ const Dashboard = () => {
                     <TableHead>Tracking Number</TableHead>
                     <TableHead>Organization</TableHead>
                     <TableHead>Items Count</TableHead>
-                    {/* <TableHead>Status</TableHead> */}
                     <TableHead>Work Order</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -476,11 +553,6 @@ const Dashboard = () => {
                           {certificate.items.length} items
                         </Badge>
                       </TableCell>
-                      {/* <TableCell>
-                        <Badge className={getStatusColor(getCertificateStatus(certificate.items))}>
-                          {getCertificateStatus(certificate.items)}
-                        </Badge>
-                      </TableCell> */}
                       <TableCell>{certificate.workOrderContractInvoiceNumber || "-"}</TableCell>
                       <TableCell>{formatDate(certificate.created_at)}</TableCell>
                       <TableCell className="text-right">
