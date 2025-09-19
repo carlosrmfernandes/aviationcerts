@@ -64,15 +64,38 @@ const BatchPDFPreview = () => {
   const [loading, setLoading] = useState(true);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [fetching, setFetching] = useState(false);
+
+  // 🔥 Adicionei o state que faltava
+  const [toggleValue, setToggleValue] = useState(false);
 
   useEffect(() => {
     const fetchCertificates = async () => {
       if (!ids) return;
 
-      const selectedIds = ids.split(',');
+      const selectedIds = ids.split(",");
       setProgress({ current: 0, total: selectedIds.length });
 
       const token = localStorage.getItem("access_token");
+
+      try {
+        // Primeiro busca o estado do toggle
+        const toggleRes = await fetch(getApiUrl("/api/toggle-state"), {
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+
+        if (toggleRes.ok) {
+          const toggleData = await toggleRes.json();
+          setToggleValue(toggleData.enabled);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar toggle:", error);
+      }
+
       const results: Certificate[] = [];
 
       for (let i = 0; i < selectedIds.length; i++) {
@@ -82,8 +105,8 @@ const BatchPDFPreview = () => {
             headers: {
               "Content-Type": "application/json",
               "Accept": "application/json",
-              "Authorization": `Bearer ${token}`
-            }
+              "Authorization": `Bearer ${token}`,
+            },
           });
 
           if (!res.ok) throw new Error(`Error fetching certificate ${id}`);
@@ -94,9 +117,9 @@ const BatchPDFPreview = () => {
           // Atualiza o progresso
           setProgress({ current: i + 1, total: selectedIds.length });
 
-          // Adiciona um delay entre as requisições para não sobrecarregar o servidor
+          // Delay para evitar sobrecarga
           if (i < selectedIds.length - 1) {
-            await delay(300); // 300ms de delay entre requisições
+            await delay(300);
           }
         } catch (error) {
           console.error(error);
@@ -289,7 +312,7 @@ const BatchPDFPreview = () => {
           </tr>
 
           <tr>
-            <td colSpan={4} style={{ padding: "8px" }} className="disabled-field">
+            <td colSpan={4} /*style={{ padding: "8px", position: "relative" }}*/ className={!toggleValue ? "signature-box" : ""} /*className="signature-box"*/>
               <div className="text-[10px] font-bold mb-2">
                 13a. Certifies the items identified above were manufactured in conformity to:
               </div>
@@ -345,13 +368,13 @@ const BatchPDFPreview = () => {
           </tr>
 
           <tr>
-            <td colSpan={2} className="disabled-field">
+            <td colSpan={2}>
               <div className="text-[10px] font-bold mb-1">
                 13b. Authorized Signature:
               </div>
               <div className="py-5"></div>
             </td>
-            <td colSpan={2} className="disabled-field">
+            <td colSpan={2}>
               <div className="text-[10px] font-bold mb-1">
                 13c. Approval/Authorization No.:
               </div>
@@ -374,13 +397,13 @@ const BatchPDFPreview = () => {
           </tr>
 
           <tr>
-            <td colSpan={2} className="disabled-field">
+            <td colSpan={2}>
               <div className="text-[10px] font-bold mb-1">
                 13d. Name (Typed or Printed):
               </div>
               <div className="py-5"></div>
             </td>
-            <td colSpan={2} className="disabled-field">
+            <td colSpan={2}>
               <div className="text-[10px] font-bold mb-1">
                 13e. Date (dd/mmm/yyyy):
               </div>
@@ -391,7 +414,7 @@ const BatchPDFPreview = () => {
                 14d. Name (Typed or Printed):
               </div>
               <br />
-              <div className="text-sm">{certificate.name14}</div>
+              <div className="text-sm text-center">{certificate.name14}</div>
               <div className="py-5"></div>
             </td>
             <td colSpan={2}>

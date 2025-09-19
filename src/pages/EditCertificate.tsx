@@ -47,7 +47,7 @@ const EditCertificate = () => {
   const { toast } = useToast();
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(false);
-  const [toggleValue, setToggleValue] = useState(true);
+  const [toggleValue, setToggleValue] = useState(false);
   const [fetching, setFetching] = useState(false);
 
   const [formData, setFormData] = useState<CertificateForm>({

@@ -60,14 +60,17 @@ const PDFPreview = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [certificate, setCertificate] = useState<Certificate | null>(null);
+  const [toggleValue, setToggleValue] = useState(true);
 
   useEffect(() => {
     const fetchCertificate = async () => {
       if (!id) return;
 
       const token = localStorage.getItem("access_token");
+
       try {
-        const res = await fetch(getApiUrl(`/api/certificates/${id}`), {
+        // 1. Buscar toggle state
+        const toggleRes = await fetch(getApiUrl("/api/toggle-state"), {
           headers: {
             "Content-Type": "application/json",
             Accept: "application/json",
@@ -75,15 +78,30 @@ const PDFPreview = () => {
           },
         });
 
-        if (!res.ok) throw new Error("Error fetching certificate");
+        if (toggleRes.ok) {
+          const toggleData = await toggleRes.json();
+          setToggleValue(toggleData.enabled);
+        }
+        
+        const certificateRes = await fetch(getApiUrl(`/api/certificates/${id}`), {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
-        const data = await res.json();
-        setCertificate(data);
-      } catch (error) {
-        console.error(error);
+        if (!certificateRes.ok) {
+          throw new Error("Error fetching certificate");
+        }
+
+        const certificateData = await certificateRes.json();
+        setCertificate(certificateData);
+      } catch (error: any) {
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
-          description: "Failed to load certificate",
+          description: error.message || "Could not fetch data",
           variant: "destructive",
         });
         navigate("/dashboard");
@@ -94,6 +112,7 @@ const PDFPreview = () => {
 
     fetchCertificate();
   }, [id, toast, navigate]);
+
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -339,7 +358,7 @@ const PDFPreview = () => {
               </tr>
 
               <tr>
-                <td colSpan={4} /*style={{ padding: "8px", position: "relative" }}*/ className="disabled-field" /*className="signature-box"*/>
+                <td colSpan={4} /*style={{ padding: "8px", position: "relative" }}*/ className={!toggleValue ? "signature-box" : ""} /*className="signature-box"*/>
                   <div className="cross-overlay"></div>
                   <div className="text-[10px] font-bold mb-2">
                     13a. Certifies the items identified above were manufactured in conformity to:
@@ -396,13 +415,13 @@ const PDFPreview = () => {
               </tr>
 
               <tr>
-                <td colSpan={2} className="disabled-field">
+                <td colSpan={2}>
                   <div className="text-[10px] font-bold mb-1">
                     13b. Authorized Signature:
                   </div>
                   <div className="py-5"></div>
                 </td>
-                <td colSpan={2} className="disabled-field">
+                <td colSpan={2}>
                   <div className="text-[10px] font-bold mb-1">
                     13c. Approval/Authorization No.:
                   </div>
@@ -425,13 +444,13 @@ const PDFPreview = () => {
               </tr>
 
               <tr>
-                <td colSpan={2} className="disabled-field">
+                <td colSpan={2}>
                   <div className="text-[10px] font-bold mb-1">
                     13d. Name (Typed or Printed):
                   </div>
                   <div className="py-5"></div>
                 </td>
-                <td colSpan={2} className="disabled-field">
+                <td colSpan={2}>
                   <div className="text-[10px] font-bold mb-1">
                     13e. Date (dd/mmm/yyyy):
                   </div>
@@ -442,7 +461,7 @@ const PDFPreview = () => {
                     14d. Name (Typed or Printed):
                   </div>
                   <br />
-                  <div className="text-sm">{certificate.name14}</div>
+                  <div className="text-sm text-center">{certificate.name14}</div>
                   <div className="py-5"></div>
                 </td>
                 <td colSpan={2}>

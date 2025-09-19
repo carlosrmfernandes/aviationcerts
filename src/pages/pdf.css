@@ -21,7 +21,7 @@
   font-size: 11px;
 }
 
-.certificate-content .table th, 
+.certificate-content .table th,
 .certificate-content .table td {
   border: 0.25px solid #222;
   padding: 4px 6px;
@@ -29,30 +29,30 @@
   line-height: 1.2;
 }
 
-.certificate-content .no-border { 
-  border: none !important; 
+.certificate-content .no-border {
+  border: none !important;
 }
 
-.certificate-content .center { 
-  text-align: center; 
+.certificate-content .center {
+  text-align: center;
 }
 
-.certificate-content .right { 
-  text-align: right; 
+.certificate-content .right {
+  text-align: right;
 }
 
-.certificate-content .left { 
-  text-align: left; 
+.certificate-content .left {
+  text-align: left;
 }
 
-.certificate-content .small { 
-  font-size: 9px; 
-  color: #666; 
+.certificate-content .small {
+  font-size: 9px;
+  color: #666;
 }
 
-.certificate-content .big { 
-  font-size: 16px; 
-  font-weight: 700; 
+.certificate-content .big {
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .certificate-content .heading {
@@ -118,17 +118,17 @@
     page-break-after: avoid;
     page-break-inside: avoid;
   }
-  
+
   /* Evitar quebras em elementos críticos */
   .certificate-content table {
     page-break-inside: avoid;
   }
-  
+
   .certificate-content tr {
     page-break-inside: avoid;
     page-break-after: auto;
   }
-  
+
   .certificate-content td {
     page-break-inside: avoid;
   }
@@ -155,13 +155,13 @@
 .signature-box::after {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 13px;
+  left: 1px;
   width: 100%;
-  height: 100%;
-  background: 
-    linear-gradient(to bottom right, transparent 49%, black 50%, transparent 51%),
-    linear-gradient(to top right, transparent 49%, black 50%, transparent 51%);
+  height: 286%;
+  background:
+    linear-gradient(to bottom right, transparent 49%, gray 50%, transparent 48%),
+    linear-gradient(to top right, transparent 49%, gray 50%, transparent 48%);
   pointer-events: none;
 }
 
