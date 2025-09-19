@@ -147,7 +147,7 @@
   --muted: #666;
 }
 
-/* 🔹 Estilos para cruzar com "X" os blocos 13a–13e e 13d–13a */
+/* 🔹 "X" fino para os blocos 13a–13e e 13d–13a */
 .signature-box {
   position: relative;
 }
@@ -160,9 +160,23 @@
   width: 100%;
   height: 286%;
   background:
-    linear-gradient(to bottom right, transparent 49%, gray 50%, transparent 48%),
-    linear-gradient(to top right, transparent 49%, gray 50%, transparent 48%);
-  pointer-events: none;
+    /* Linha ↘ */
+    linear-gradient(
+      to bottom right,
+      rgba(0, 0, 0, 0) 49.5%,
+      gray 50%,
+      rgba(0, 0, 0, 0) 50.5%
+    ),
+    /* Linha ↙ */
+    linear-gradient(
+      to top right,
+      rgba(0, 0, 0, 0) 49.5%,
+      gray 50%,
+      rgba(0, 0, 0, 0) 50.5%
+    );
+  /* background-repeat: no-repeat;
+  background-size: 100% 100%;
+  pointer-events: none; */
 }
 
 .signature-box-alt {
